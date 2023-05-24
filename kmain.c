@@ -1,11 +1,10 @@
 #include "inc/io.h"
 
-void main()
+void main(void)
 {
 	asm "sti";
 
-	printchar('H');
-
+	printstring("Kernel successfully loaded.\r\n");
 	while(1);
 }
 

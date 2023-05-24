@@ -3,6 +3,6 @@
 
 void printchar(int ch);
 void printnumber(int num);
-void printstring(void* str);
+void printstring(char* str);
 
 #endif

@@ -32,6 +32,7 @@ init:
 
 	; set stack pointer to 0200:0000
 	mov	ax, KernelSeg
+	mov	ds, ax
 	mov	ss, ax
 	xor	sp, sp
 
