@@ -2,30 +2,47 @@ MAKEFLAGS += --silent
 
 AS := as86
 CC := bcc
+LD := ld86
 NS := nasm
 
-CCFLAGS := -3S
+OUTDIR := bin
+INCDIR := inc
+
+CCFLAGS := -ansi -0c -I$(INCDIR)
+LDFLAGS := -M -d
 NSFLAGS := -fbin
 
-OUTDIR := ./bin
+BINS := bootloader.bin kernel.bin
+OBJS := kmain.o io.o
 
 
 
-all: outdir bins
+all: outdir bootloader kernel floppy
 
 clean:
-	rm $(OUTDIR)/*.s $(BINDIR)/*.bin
-
-
+	rm $(OUTDIR)/*
 
 outdir:
 	if [ ! -d "$(OUTDIR)" ]; then mkdir $(OUTDIR); fi
 
-bins: kmain bootloader
-
-kmain:
-	$(CC) $(CCFLAGS) -o $(OUTDIR)/kmain.s kmain.c
-	$(AS) -b $(OUTDIR)/kmain.bin $(OUTDIR)/kmain.s
-
-bootloader:
+bootloader: outdir
 	$(NS) $(NSFLAGS) -o $(OUTDIR)/bootloader.bin bootloader.asm
+
+kernel: outdir $(OBJS)
+	$(LD) $(LDFLAGS) -o $(OUTDIR)/kernel.bin $(OBJS)
+	rm $(OBJS) 
+
+floppy: bootloader kernel
+	if [ -f floppy.img ]; then rm floppy.img; fi
+	touch $(OUTDIR)/floppy.img
+	for file in $(BINS); do \
+		cat $(OUTDIR)/$$file >> $(OUTDIR)/floppy.img; \
+	done
+	truncate --size=1440K $(OUTDIR)/floppy.img
+
+
+
+kmain.o: outdir
+	$(CC) $(CCFLAGS) -o kmain.o kmain.c
+io.o: outdir
+	$(CC) $(CCFLAGS) -o io.o io.c

@@ -30,7 +30,12 @@ init:
 	; check whether any error have occured
 	jc	error
 
-	; jump to 0050:0000
+	; set stack pointer to 0200:0000
+	mov	ax, KernelSeg
+	mov	ss, ax
+	xor	sp, sp
+
+	; jump to 0200:0000
 	cli
 	push	es
 	push	bx
@@ -54,7 +59,7 @@ halt:
 
 error_msg	db	"Kernel not found.", 0	
 
-KernelSeg		equ	0x0050
+KernelSeg		equ	0x0200
 KernelOffset		equ	0x0000
 KernelSegmentCount	equ	1
 

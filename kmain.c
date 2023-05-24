@@ -1,21 +1,11 @@
-void printchar(ch);
+#include "inc/io.h"
 
 void main()
 {
-	printchar('N');
-}
+	asm "sti";
 
-void printchar(ch)
-{
-#asm
-	push	ax
-	push	bx
-	mov	ah, 0x0e
-	mov	bx, sp
-	mov	al, [bx + 2]
-	xor	bx, bx
-	int	0x10
-#endasm
-}
+	printchar('H');
 
+	while(1);
+}
 
