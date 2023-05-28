@@ -62,7 +62,7 @@ error_msg	db	"Kernel not found.", 0
 
 KernelSeg		equ	0x0200
 KernelOffset		equ	0x0000
-KernelSegmentCount	equ	1
+KernelSegmentCount	equ	10
 
 StackSeg		equ	0x9000
 StackOffset		equ	0x0000

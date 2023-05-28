@@ -29,7 +29,7 @@ bootloader: outdir
 	$(NS) $(NSFLAGS) -o $(OUTDIR)/bootloader.bin bootloader.asm
 
 kernel: outdir $(OBJS)
-	$(LD) $(LDFLAGS) -o $(OUTDIR)/kernel.bin $(OBJS)
+	$(LD) $(LDFLAGS) -o $(OUTDIR)/kernel.bin $(OBJS) -L/usr/lib/bcc -lc
 	rm $(OBJS) 
 
 floppy: bootloader kernel
