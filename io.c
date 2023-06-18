@@ -101,6 +101,8 @@ void format(char letter, int* ap)
 		case 'd':
 			printnumber(*ap);
 			break;
+		case 's':
+			printstring(*ap);
 		case 'X':
 			printhex(*ap, true);
 			break;

@@ -60,7 +60,7 @@ halt:
 
 error_msg	db	"Kernel not found.", 0	
 
-KernelSeg		equ	0x0200
+KernelSeg		equ	0x0100
 KernelOffset		equ	0x0000
 KernelSegmentCount	equ	10
 
