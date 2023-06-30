@@ -3,6 +3,7 @@
 void format(char letter, int* ap);
 
 
+
 void printchar(int ch)
 {
 #asm
@@ -21,7 +22,6 @@ void printchar(int ch)
 	pop	bp
 #endasm
 }
-
 
 
 void printhex(int num, bool uppercase)
@@ -49,23 +49,37 @@ void printhex(int num, bool uppercase)
 	printstring(str);
 }
 
+
 void printnumber(int num)
 {
+	bool is_negative = num < 0 ? true : false;
 	char str[8];
 	int i;
 
 	str[7] = 0;
 
-	for (i = 6; i >= 0; i--)
+	if(num == 0)
 	{
-		str[i] = (num % 10) + '0';
-		num /= 10;
-
-		if (num == 0) break;
+		str[6] = '0';
+		i = 6;
 	}
+	else
+	{
+		if(is_negative) num *= -1;
 
+		for (i = 6; i >= 0; i--)
+		{
+			str[i] = (num % 10) + '0';
+			num /= 10;
+	
+			if (num == 0) break;
+		}
+
+		if(is_negative) str[--i] = '-';
+	}
 	printstring(&str[i]);
 }
+
 
 void printstring(char* str, ...)
 {
@@ -88,7 +102,6 @@ void printstring(char* str, ...)
 }
 
 
-
 // parameter:	next letter of %
 //		argument pointer
 void format(char letter, int* ap)
@@ -103,6 +116,7 @@ void format(char letter, int* ap)
 			break;
 		case 's':
 			printstring(*ap);
+			break;
 		case 'X':
 			printhex(*ap, true);
 			break;

@@ -13,7 +13,7 @@ LDFLAGS := -M -d
 NSFLAGS := -fbin
 
 BINS := bootloader.bin kernel.bin
-OBJS := kmain.o io.o
+OBJS := kmain.o io.o process.o
 
 
 
@@ -46,3 +46,5 @@ kmain.o: outdir
 	$(CC) $(CCFLAGS) -o kmain.o kmain.c
 io.o: outdir
 	$(CC) $(CCFLAGS) -o io.o io.c
+process.o: outdir
+	$(CC) $(CCFLAGS) -o process.o process.c

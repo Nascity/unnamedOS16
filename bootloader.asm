@@ -30,13 +30,13 @@ init:
 	; check whether any error have occured
 	jc	error
 
-	; set stack pointer to 0200:0000
+	; set stack pointer to 0100:0000
 	mov	ax, KernelSeg
 	mov	ds, ax
 	mov	ss, ax
 	xor	sp, sp
 
-	; jump to 0200:0000
+	; jump to 0100:0000
 	cli
 	push	es
 	push	bx

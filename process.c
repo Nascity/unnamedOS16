@@ -56,15 +56,26 @@ void process_init(void)
 
 void int0x8h_handler(void)
 {
-	asm("cli");
-
-	printstring("INT 08H\r\n");
 	scheduler();
-
 #asm
 	mov	al, #0x20
 	out	#0x20, al
-	iret
+	pop	si
+	pop	di
+	pop	bp
+
+	; [EFLAGS]
+	; cs
+	; ip
+	; bp
+	; di
+	; si
+	pop	ax
+	pop	cx
+	popf
+	push	cx
+	push	ax
+	retf
 #endasm
 }
 
@@ -76,8 +87,6 @@ void scheduler(void)
 	{
 		ticks = TIME_QUANTUM_TICKS;
 	}
-
-	printstring("scheduler exit!\r\n");
 }
 
 // -----------------------------------------------------------------------
