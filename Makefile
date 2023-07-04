@@ -1,6 +1,5 @@
 MAKEFLAGS += --silent
 
-AS := as86
 CC := bcc
 LD := ld86
 NS := nasm

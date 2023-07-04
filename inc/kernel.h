@@ -3,4 +3,6 @@
 
 #define KERNEL_SEGMENT	0x0100
 
+void halt(void);
+
 #endif

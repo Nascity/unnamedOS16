@@ -37,7 +37,6 @@ init:
 	xor	sp, sp
 
 	; jump to 0100:0000
-	cli
 	push	es
 	push	bx
 	retf
