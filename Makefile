@@ -32,7 +32,7 @@ kernel: outdir $(OBJS)
 	rm $(OBJS) 
 
 floppy: bootloader kernel
-	if [ -f floppy.img ]; then rm floppy.img; fi
+	if [ -f $(OUTDIR)/floppy.img ]; then rm $(OUTDIR)/floppy.img; fi
 	touch $(OUTDIR)/floppy.img
 	for file in $(BINS); do \
 		cat $(OUTDIR)/$$file >> $(OUTDIR)/floppy.img; \
