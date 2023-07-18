@@ -6,6 +6,9 @@
 typedef int bool;
 typedef char byte;
 
+#include "cpu.h"
 #include "io.h"
 #include "kernel.h"
+#include "memory.h"
 #include "process.h"
+#include "syscall.h"

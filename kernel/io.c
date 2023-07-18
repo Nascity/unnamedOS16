@@ -101,6 +101,29 @@ void printstring(char* str, ...)
 	}
 }
 
+void printline(char* str, ...)
+{
+	char* ap = (char*)&str + 2;
+
+	while (*str)
+	{
+		if (*str != '%')
+		{
+			printchar(*(str++));
+			continue;
+		}
+
+		// if the letter is %
+		// check for next letter *(++str)
+		format(*(++str), (int*)ap);
+		ap += 2;
+		str++;
+	}
+
+	printchar('\r');
+	printchar('\n');
+}
+
 
 // parameter:	next letter of %
 //		argument pointer
