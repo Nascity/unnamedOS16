@@ -15,7 +15,7 @@ typedef struct __pcb_t
 	// cs
 	// ip	<--- sp
 	
-	memmgr_t memmgr;
+	MAT_t mem_alloc_table;
 } pcb_t;
 
 void process_init(void);

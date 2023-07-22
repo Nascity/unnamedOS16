@@ -22,7 +22,7 @@ init:
 	mov	al, KernelSegmentCount
 	mov	bx, KernelOffset
 	xor	ch, ch
-	mov	cl, 0x02
+	mov	cl, 0x04
 	xor	dh, dh
 	xor	dl, dl
 	int	0x13

@@ -1,23 +1,33 @@
 #include "inc/inc.h"
 
-int test(void);
+extern struct
+{
+	int count;
+	pcb_t* top;	// this pointer points to the top of the stack
+	pcb_t blocks[MAX_PROCESS];
+} pcb_stack;
+
+kobj_mem AllocHeapMem(int count);
 
 void main(void)
 {
-	memmgr_t memmgr;
+	int* ptable;
 
 	printline("Kernel successfully loaded.");
 	process_init();
 	syscall_init();
 
-	memmgr_init(&memmgr, 0x200);
+	AllocHeapMem(31);
+	AllocHeapMem(18);
 
-	printline("Kernel memmgr info:");
-	printline("16b:\t%x", memmgr.slice_16B[0].addr);
-	printline("32b:\t%x", memmgr.slice_32B[0].addr);
-	printline("64b:\t%x", memmgr.slice_64B[0].addr);
-	printline("128b:\t%x", memmgr.slice_128B[0].addr);
-	printline("256b:\t%x", memmgr.slice_256B[0].addr);
+	ptable = pcb_stack.blocks[0].mem_alloc_table.memstate_16B;
+
+	printline("%d", FreeHeapMem((kobj_mem)2));
+
+	printline("%d %d %d %d %d %d",
+		ptable[0], ptable[1],
+		ptable[2], ptable[3],
+		ptable[4], ptable[5]);
 
 	halt();
 }
@@ -27,4 +37,16 @@ void halt(void)
 {
 	printstring("halt");
 	while(true);
+}
+
+kobj_mem AllocHeapMem(int count)
+{
+	int cnt = count;
+	asm("int 0x22");
+}
+
+bool FreeHeapMem(kobj_mem komem)
+{
+	kobj_mem km = komem;
+	asm("int 0x23");
 }

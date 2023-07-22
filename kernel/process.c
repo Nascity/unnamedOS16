@@ -17,6 +17,9 @@ void process_init(void)
 {
 	// Initialize PCB stack
 	pcb_stack_init();
+
+	// DEBUG
+	printline("PCB stack initialized.");
 }
 
 
@@ -31,11 +34,7 @@ void process_start(int return_cs, int flags, char name[MAX_PROCESS_NAME])
 	if(!new_process_possible()) 
 	{
 		printline("Process stack is full.");
-#asm
-		mov	sp, bp
-		add	sp, #0x02
-		iret
-#endasm
+		syscall_return();
 	}
 
 	old_pcb->ip = *(ap - 1);
@@ -48,7 +47,7 @@ void process_start(int return_cs, int flags, char name[MAX_PROCESS_NAME])
 	(pcb_stack.top)++;
 	(pcb_stack.count)++;
 
-	printline("Created process PID %x.", new_pid);
+	printline("Created process %s. (%x)", new_pcb->name, new_pid);
 #asm
 	mov	ax, word ptr [bp - 10]
 	mov	ds, ax
@@ -81,7 +80,7 @@ bool new_process_possible(void)
 void pcb_stack_init(void)
 {
 	pcb_t kernel_block;
-	char* kernel_name = "Kernel";
+	char* kernel_name = "init";
 	int i;
 
 	// assigning information of the kernel
@@ -90,7 +89,7 @@ void pcb_stack_init(void)
 		kernel_block.name[i] = kernel_name[i];
 	kernel_block.ip = halt;
 	kernel_block.sp = 0;
-	memmgr_init(&(kernel_block.memmgr), kernel_block.pid);
+	MAT_init(&(kernel_block.mem_alloc_table), kernel_block.pid);
 
 	pcb_stack.top = pcb_stack.blocks;
 	pcb_stack.blocks[0] = kernel_block;

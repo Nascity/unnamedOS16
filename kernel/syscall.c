@@ -5,7 +5,9 @@
 void* handlers[] =
 {
 	process_start,
-	process_kill
+	process_kill,
+	memory_alloc,
+	memory_free
 };
 
 void replace_handler(int int_number, void* handler);
@@ -20,7 +22,18 @@ void syscall_init(void)
 		replace_handler(i, handlers[i - SYSCALL_BEGIN]);
 
 	// DEBUG
-	printline("Syscall initialized.");
+	printline("Syscall %x to %x initialized.",
+			SYSCALL_BEGIN, SYSCALL_END);
+}
+
+
+void syscall_return(void)
+{
+#asm
+	mov	sp, bp
+	add	sp, #0x02
+	iret
+#endasm
 }
 
 

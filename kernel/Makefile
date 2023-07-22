@@ -10,14 +10,17 @@ INCDIR := inc
 CCFLAGS := -ansi -0c -I$(INCDIR)
 LDFLAGS := -M -d
 NSFLAGS := -fbin
-QEMUFLAGS := -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy
 
-BINS := bootloader.bin kernel.bin
+QEMUFLAGS := -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy
+QEMUDEBUGFLAGS := $(QEMUFLAGS) -S -gdb tcp::8000
+
+BINS := ../../../kernel/bin/bootloader.bin ../../../kernel/bin/kernel.bin
 OBJS := kmain.o cpu.o io.o memory.o process.o syscall.o
 
 FLOPPY_MAKER := ../dev_utils/floppy_maker/bin/floppy_maker
 
 
+.ONESHELL:
 
 all: outdir bootloader kernel floppy
 
@@ -51,9 +54,13 @@ kernel: outdir $(OBJS)
 
 floppy: bootloader kernel
 	if [ -f $(OUTDIR)/floppy.img ]; then rm $(OUTDIR)/floppy.img; fi
-	$(FLOPPY_MAKER) $(BINS)
-
+	cd ../dev_utils/floppy_maker/bin;
+	./floppy_maker $(BINS);
+	cd ../../../kernel
 	truncate --size=1440K $(OUTDIR)/floppy.img
 
 debug:
 	qemu-system-i386 $(QEMUFLAGS)
+debug_remote:
+	echo type "target remote localhost:8000" in gdb.
+	qemu-system-i386 $(QEMUDEBUGFLAGS)
