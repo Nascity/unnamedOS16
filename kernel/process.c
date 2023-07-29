@@ -12,7 +12,6 @@ void pcb_stack_init(void);
 
 // -----------------------------------------------------------------------
 // Process operations
-
 void process_init(void)
 {
 	// Initialize PCB stack
@@ -76,7 +75,6 @@ bool new_process_possible(void)
 
 // -----------------------------------------------------------------------
 // PCB operations
-
 void pcb_stack_init(void)
 {
 	pcb_t kernel_block;

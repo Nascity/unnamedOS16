@@ -7,7 +7,9 @@ void* handlers[] =
 	process_start,
 	process_kill,
 	memory_alloc,
-	memory_free
+	memory_free,
+	memory_write,
+	memory_read
 };
 
 void replace_handler(int int_number, void* handler);

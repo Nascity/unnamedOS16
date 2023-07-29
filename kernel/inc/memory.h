@@ -11,17 +11,23 @@
 #define _32BYTE_SLICE_ADDR_OFFSET	0x0400
 #define _64BYTE_SLICE_ADDR_OFFSET	0x0800
 #define _128BYTE_SLICE_ADDR_OFFSET	0x0C00
+#define _256BYTE_SLICE_ADDR_OFFSET	0xF000
+
+#define _16BYTE_SLICE_START	0
+#define _32BYTE_SLICE_START	64
+#define _64BYTE_SLICE_START	96
+#define _128BYTE_SLICE_START	112
+#define _256BYTE_SLICE_START	120
+#define SLICE_COUNT	128
 
 #define _16BYTE_SLICE_ALLOC_THRESHOLD	32
 #define _32BYTE_SLICE_ALLOC_THRESHOLD	64
 #define _64BYTE_SLICE_ALLOC_THRESHOLD	128
 #define _128BYTE_SLICE_ALLOC_THRESHOLD	256
-#define _256BYTE_SLICE_ALLOC_THRESHOLD	1024
-
-#define LOWER_HEAP_START_OFFSET	0x0F000
-#define UPPER_HEAP_START_OFFSET	0x20000
+#define _256BYTE_SLICE_ALLOC_THRESHOLD	2048
 
 #define UNALLOCATED_SLICE	-1
+#define INVALID_KOBJMEM		-1
 
 typedef struct __MAT_t
 {
@@ -34,7 +40,10 @@ typedef struct __MAT_t
 
 void MAT_init(memmgr_t* pmgr);
 
-kobj_mem memory_alloc(int count);
-bool memory_free(kobj_mem komem);
+kobj_mem memory_alloc(int cs, int flags, int count);
+bool memory_free(int cs, int flags, kobj_mem komem);
+
+bool memory_write(int cs, int flags, kobj_mem komem, void* buffer, int offset, int count);
+bool memory_read(int cs, int flags, kobj_mem komem, void* buffer, int offset, int count);
 
 #endif

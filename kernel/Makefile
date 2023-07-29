@@ -11,7 +11,7 @@ CCFLAGS := -ansi -0c -I$(INCDIR)
 LDFLAGS := -M -d
 NSFLAGS := -fbin
 
-QEMUFLAGS := -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy
+QEMUFLAGS := -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy,readonly=off
 QEMUDEBUGFLAGS := $(QEMUFLAGS) -S -gdb tcp::8000
 
 BINS := ../../../kernel/bin/bootloader.bin ../../../kernel/bin/kernel.bin

@@ -58,3 +58,41 @@ void set_ss(int ss)
 	ret
 #endasm
 }
+
+void write_byte(void* offset, byte val)
+{
+#asm
+	mov	bx, sp
+	mov	di, word ptr [bx + 2]
+	mov	cx, word ptr [bx + 4]
+	mov	byte ptr [di], cl
+#endasm
+}
+
+byte read_byte(void* offset)
+{
+#asm
+	mov	bx, sp
+	mov	di, word ptr [bx + 2]
+	mov	al, byte ptr [di]
+#endasm
+}
+
+void write_word(void* offset, int val)
+{
+#asm
+	mov	bx, sp
+	mov	di, word ptr [bx + 2]
+	mov	cx, word ptr [bx + 4]
+	mov	word ptr [di], cx
+#endasm
+}
+
+int read_word(void* offset)
+{
+#asm
+	mov	bx, sp
+	mov	di, word ptr [bx + 2]
+	mov	ax, word ptr [di]
+#endasm
+}
