@@ -71,7 +71,7 @@ bool memory_write(int cs, int flags, kobj_mem komem, void* buffer, int offset, i
 	int multiplier = 0;
 	int temp = komem;
 
-	if(target == -1)
+	if(target == -1 || count == 0)
 	{
 		asm("mov	ax, #0x00");
 		syscall_return();
@@ -93,6 +93,7 @@ bool memory_write(int cs, int flags, kobj_mem komem, void* buffer, int offset, i
 	}
 	if(offset + count > seg_count * multiplier)
 		count -= offset + count - seg_count * multiplier + 1;
+	else count--;
 	if(seg_count == 0)
 	{
 		asm("mov	ax, #0x00");
@@ -139,7 +140,7 @@ bool memory_read(int cs, int flags, kobj_mem komem, void* buffer, int offset, in
 	int multiplier = 0;
 	int temp = komem;
 
-	if(target == -1)
+	if(target == -1 || count == 0)
 	{
 		asm("mov	ax, #0x00");
 		syscall_return();
@@ -160,7 +161,8 @@ bool memory_read(int cs, int flags, kobj_mem komem, void* buffer, int offset, in
 		syscall_return();
 	}
 	if(offset + count > seg_count * multiplier)
-		count -= offset + count - seg_count * multiplier;
+		count -= offset + count - seg_count * multiplier + 1;
+	else count--;
 	if(seg_count == 0)
 	{
 		asm("mov	ax, #0x00");

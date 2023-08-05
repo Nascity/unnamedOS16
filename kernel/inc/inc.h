@@ -5,6 +5,7 @@
 
 typedef int bool;
 typedef char byte;
+typedef short word;
 
 #include "cpu.h"
 #include "io.h"

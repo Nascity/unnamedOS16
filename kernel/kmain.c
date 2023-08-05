@@ -20,10 +20,13 @@ void main(void)
 	process_init();
 	syscall_init();
 
+	printline("%d %d", sizeof(date_entry), sizeof(dir_entry));
+
 	AllocHeapMem(16);
 	AllocHeapMem(16);
-	printline("%d", WriteHeapMem(0, test, 10, 17));
-	printline("%d", ReadHeapMem(0, temp, 11, 4));
+	printline("%d", WriteHeapMem(0, test, 11, 4));
+	WriteHeapMem(1, test, 10, 1);
+	printline("%d", ReadHeapMem(0, temp, 11, 8));
 	printline(temp);
 
 	halt();

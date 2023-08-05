@@ -2,11 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "main.h"
+#include "inc/main.h"
 
 void read_and_write(FILE* fp_read, char* filename);
 void read_and_write_bootsector(FILE* fp_bootsector);
 void write_to_FAT(int cluster_ptr, int value);
+void write_to_root(char* filename, int filesize, int start_cluster);
 void write_to_floppy(int sector_count, void* buffer);
 void error_handler(char* msg);
 
@@ -114,6 +115,12 @@ void write_to_floppy(int start_sector, void* buffer)
 	count = fwrite(buffer, 1, 512, fp_floppy);
 	if(count != 512) error_handler("failed to write data to floppy.img");
 	printf("%-15s\t%ld bytes written to floppy.img at sector %d.\r\n", FLOPPY_WRITE, count, start_sector);
+}
+
+
+void write_to_root(char* filename, int filesize, int start_cluster)
+{
+	
 }
 
 

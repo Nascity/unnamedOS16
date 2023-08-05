@@ -29,6 +29,8 @@
 #define UNALLOCATED_SLICE	-1
 #define INVALID_KOBJMEM		-1
 
+typedef int kobj_mem;
+
 typedef struct __MAT_t
 {
 	int memstate_16B[_16BYTE_SLICE_COUNT];

@@ -4,6 +4,8 @@ void format(char letter, int* ap);
 
 
 
+// -----------------------------------------------------------------------
+// Interaction
 void printchar(int ch)
 {
 #asm
@@ -125,8 +127,32 @@ void printline(char* str, ...)
 }
 
 
-// parameter:	next letter of %
-//		argument pointer
+kobj_io io_open(int cs, int flags, char name[FILE_MAX_NAME], int open_mode)
+{
+
+}
+
+
+bool io_close(int cs, int flags, kobj_io koio)
+{
+
+}
+
+
+bool io_write(int cs, int flags, kobj_io koio, void* buffer, int offset, int count)
+{
+
+}
+
+
+bool io_read(int cs, int flags, kobj_io koio, void* buffer, int offset, int count)
+{
+
+}
+
+
+// -----------------------------------------------------------------------
+// Internal
 void format(char letter, int* ap)
 {
 	switch (letter)

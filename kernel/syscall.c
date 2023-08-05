@@ -9,7 +9,11 @@ void* handlers[] =
 	memory_alloc,
 	memory_free,
 	memory_write,
-	memory_read
+	memory_read,
+	io_open,
+	io_close,
+	io_write,
+	io_read
 };
 
 void replace_handler(int int_number, void* handler);
