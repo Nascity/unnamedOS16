@@ -1,7 +1,7 @@
 # UnnamedOS (uOS)
 ## 개요
 
-uOS는 서울시립대학교 컴퓨터과학부의 행사 중 하나인 셈틀제를 위해 제가 제작하고 있는 80386용 운영체제입니다. FAT16과 유사한 파일시스템 구축과 single-tasking operating system 구현을 목표로 하고 있습니다.
+uOS는 서울시립대학교 컴퓨터과학부의 행사 중 하나인 셈틀제를 위해 제가 제작하고 있는 8086용 운영체제입니다. FAT16과 유사한 파일시스템 구축과 single-tasking operating system 구현을 목표로 하고 있습니다.
 
 ## API 문서
 [API 문서](API%20docs.md)

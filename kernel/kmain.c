@@ -13,23 +13,41 @@ void PrintMemAllocState(void);
 
 void main(void)
 {
-	char* test = "testtestsets";
-	char temp[16];
-
 	printline("Kernel successfully loaded.");
-	process_init();
 	syscall_init();
+	if(!io_init())
+	{
+		printline("io_init failed.");
+		halt();
+	}
+	process_init();
 
-	printline("%d %d", sizeof(date_entry), sizeof(dir_entry));
-
-	AllocHeapMem(16);
-	AllocHeapMem(16);
-	printline("%d", WriteHeapMem(0, test, 11, 4));
-	WriteHeapMem(1, test, 10, 1);
-	printline("%d", ReadHeapMem(0, temp, 11, 8));
-	printline(temp);
+	printline("%d %d %d %d",
+			string_n_compare("a", "bc"),
+			string_n_compare("aa", "aaa"),
+			string_n_compare("aa", "aa"),
+			string_n_compare("asdf", "asdf"));
 
 	halt();
+}
+
+
+bool string_n_compare(char* str1, char* str2, int n)
+{
+	int i = 0;
+	bool ret = true;
+
+	while(str1[i] && str2[i] && i <= n)
+	{
+		if(str1[i] != str2[i])
+		{
+			ret = false;
+			break;
+		}
+		i++;
+	}
+
+	return ret;
 }
 
 
