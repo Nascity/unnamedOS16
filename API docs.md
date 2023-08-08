@@ -1,6 +1,14 @@
 # API docs
 UOS API의 문서입니다.
 ## 자료형
+| 자료형 | 크기 (bytes) | 설명 |
+| - | - | - |
+| BOOL | 1 | boolean |
+| BYTE | 1 | byte |
+| INT | 2 | int |
+| KOBJIO | 2 | I/O 커널 오브젝트 |
+| KOBJMEM | 2 | 메모리 커널 오브젝트 |
+| WORD | 2 | word |
 
 ## 프로세스
 
