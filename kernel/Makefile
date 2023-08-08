@@ -5,7 +5,7 @@ LD := ld86
 NS := nasm
 
 OUTDIR := ../bin
-OBJS := kmain.o cpu.o io.o memory.o process.o syscall.o
+OBJS := kmain.o io.o memory.o process.o syscall.o
 
 CCFLAGS := -ansi -0c -I$(INCDIR)
 LDFLAGS := -M -d
@@ -18,8 +18,6 @@ clean:
 	rm *.o
 
 
-cpu.o:
-	$(CC) $(CCFLAGS) -o cpu.o cpu.c
 kmain.o:
 	$(CC) $(CCFLAGS) -o kmain.o kmain.c
 io.o:

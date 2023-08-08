@@ -3,14 +3,20 @@
 
 #define FILE_MAX_NAME		8
 #define FILE_MAX_EXT		3
-#define FILE_MAX_SIZE	0xFFFF
+#define FILE_MAX_SIZE		0xFFFF
 
 #define MAX_FIT_ENTRY		16
 #define UNREGISTERED_FIT_ENTRY	-1
 
-#define FIT_FLAGS_READ		0x01
-#define FIT_FLAGS_WRITE		0x02
+#define FILE_OPEN_WRITE		0x01
+#define FILE_OPEN_READ		0x02
+
+#define FIT_FLAGS_WRITE		0x01
+#define FIT_FLAGS_READ		0x02
 #define FIT_FLAGS_USED_ENTRY	0x04
+
+#define FIT_FAT_INDEX		0
+#define FIT_ROOT_INDEX		1
 
 #define FAT_CLUSTER		0x0002
 #define ROOT_CLUSTER		0x0003

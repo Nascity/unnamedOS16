@@ -1,5 +1,7 @@
 #include "inc/inc.h"
 
+void io_test(void);
+
 void format(char letter, int* ap);
 bool string_n_compare(char* str1, char* str2, int n);
 
@@ -8,14 +10,20 @@ bool close_file(int FIT_index);
 bool write_file(int FIT_index, void* buffer, int offset, int count);
 bool read_file(int FIT_index, void* buffer, int offset, int count);
 
+void write_file_byte(int write_ds, int offset, int value);
+byte read_file_byte(int read_ds, int offset);
+
 int get_file_FIT_index(int file_cluster);
 int get_file_cluster(int FIT_index);
+
 bool load_cluster(int file_cluster, int FIT_index);
+bool save_cluster(int file_cluster, int FIT_index);
 
 bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* registered_index);
 bool unregister_FIT(int FIT_index);
 
 int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster);
+int navigate_cluster_chain(int start, int count);
 
 int open_serial_port(int owner, int port_num, int open_mode);
 
@@ -26,6 +34,12 @@ file_interaction_table_entry FIT[MAX_FIT_ENTRY];
 bool io_init(void)
 {
 	int unused;
+	int i;
+
+	for(i = 0;
+		i < MAX_FIT_ENTRY * sizeof(file_interaction_table_entry);
+		i++)
+		((byte*)FIT)[i] = 0;
 
 	if(!register_FIT(0x100, FAT_CLUSTER,
 		FIT_FLAGS_READ | FIT_FLAGS_WRITE, &unused)) return false;
@@ -33,7 +47,23 @@ bool io_init(void)
 	if(!register_FIT(0x100, ROOT_CLUSTER,
 		FIT_FLAGS_READ | FIT_FLAGS_WRITE, &unused)) return false;
 	if(!load_cluster(ROOT_CLUSTER, unused)) return false;
+
+	io_test();
 	return true;
+}
+
+
+void io_test(void)
+{
+	char* buffer = "overwrite!";
+	char read[10];
+	int i;
+	int koio = open_file(0x100, 18, FILE_OPEN_READ | FILE_OPEN_WRITE);
+
+	read_file(koio, read, 0, 10);
+	printline(read);
+	write_file(koio, buffer, 0, 10);
+	printline("%d", save_cluster(18, koio));
 }
 
 
@@ -163,7 +193,6 @@ void printline(char* str, ...)
 kobj_io io_open(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int open_mode)
 {
 	int ret;
-
 	char* serial0 = "serial0";
 	char* serial1 = "serial1";
 	int start_cluster;
@@ -263,13 +292,110 @@ int open_file(int owner, int file_cluster, int open_mode)
 
 bool write_file(int FIT_index, void* buffer, int offset, int count)
 {
+	int i;
+	int j = offset;
+	int loaded_cluster = navigate_cluster_chain(
+				FIT[FIT_index].start_cluster,
+				FIT[FIT_index].file_pointer / 512);
+	int new_cluster;
 
+	for(i = 0; i < count; i++)
+	{
+		if(j / 512)
+		{
+			new_cluster = navigate_cluster_chain(
+				FIT[FIT_index].start_cluster,
+				FIT[FIT_index].file_pointer / 512);
+			if(new_cluster == INVALID_CLUSTER)
+				return false;
+			if(!save_cluster(loaded_cluster, FIT_index))
+				return false;
+			if(!load_cluster(new_cluster, FIT_index))
+				return false;
+			loaded_cluster = new_cluster;
+			j = j % 512;
+		}
+
+		write_file_byte(0x3000 + FIT_index * 0x20, j, ((byte*)buffer)[i]);
+		j++;
+	}
+
+	return true;
 }
 
 
 bool read_file(int FIT_index, void* buffer, int offset, int count)
 {
+	int i;
+	int j = offset;
+	int loaded_cluster = navigate_cluster_chain(
+				FIT[FIT_index].start_cluster,
+				FIT[FIT_index].file_pointer / 512);
+	int new_cluster;
 
+	for(i = 0; i < count; i++)
+	{
+		if(j / 512)
+		{
+			new_cluster = navigate_cluster_chain(
+				FIT[FIT_index].start_cluster,
+				FIT[FIT_index].file_pointer / 512);
+			if(new_cluster == INVALID_CLUSTER)
+				return false;
+			if(!load_cluster(new_cluster, FIT_index))
+				return false;
+			loaded_cluster = new_cluster;
+			j = j % 512;
+		}
+
+		((byte*)buffer)[i] =
+			read_file_byte(0x3000 + FIT_index * 0x20, j);
+		j++;
+	}
+
+	return true;
+}
+
+
+void write_file_byte(int write_ds, int offset, int value)
+{
+	int ds = write_ds;
+	int off = offset;
+	int val = value;
+#asm
+	mov	ax, ds
+	push	ax
+	
+	mov	ax, word ptr [bp - 6]
+	mov	bx, word ptr [bp - 8]
+	mov	cx, word ptr [bp - 10]
+	mov	ds, ax
+	mov	byte ptr [bx], cl
+
+	pop	ax
+	mov	ds, ax
+#endasm
+}
+
+
+byte read_file_byte(int read_ds, int offset)
+{
+	int ds = read_ds;
+	int off = offset;
+#asm
+	mov	ax, ds
+	push	ax
+	
+	mov	ax, word ptr [bp - 6]
+	mov	bx, word ptr [bp - 8]
+	mov	ds, ax
+	mov	di, word ptr [bx]
+
+	pop	ax
+	mov	ds, ax
+
+	mov	ax, di
+#endasm
 }
 
 
@@ -297,7 +423,6 @@ bool load_cluster(int file_cluster, int FIT_index)
 	int bx = FIT_index * 512;
 	int cl = file_cluster & 0xFF;
 	int ret;
-
 #asm
 	mov	ax, #0x3000
 	mov	es, ax
@@ -316,6 +441,35 @@ bool load_cluster(int file_cluster, int FIT_index)
 load_cluster_carry:
 	xor	ax, ax
 load_cluster_end:
+	mov	word ptr [bp - 10], ax
+#endasm
+	return ret;
+}
+
+
+bool save_cluster(int file_cluster, int FIT_index)
+{
+	int bx = FIT_index * 512;
+	int cl = file_cluster & 0xFF;
+	int ret;
+#asm
+	mov	ax, #0x3000
+	mov	es, ax
+
+	mov	ax, #0x0301
+	mov	bx, word ptr [bp - 6]
+	xor	ch, ch
+	mov	cl, byte ptr [bp - 8]
+	xor	dx, dx
+	int	0x13
+
+	jc	save_cluster_carry	; carry == 1 when error
+	xor	ax, ax
+	inc	ax
+	jmp	save_cluster_end
+save_cluster_carry:
+	xor	ax, ax
+save_cluster_end:
 	mov	word ptr [bp - 10], ax
 #endasm
 	return ret;
@@ -353,6 +507,28 @@ bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* register
 int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster)
 {
 
+}
+
+
+int navigate_cluster_chain(int start, int count)
+{
+	word FAT_entry = 0;
+	word current = start;
+	int i;
+
+	for(i = 0; i < count; i++)
+	{
+		if(current == INVALID_CLUSTER) return INVALID_CLUSTER;
+
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * current);
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * current + 1) << 8;
+		current = FAT_entry;
+		FAT_entry = 0;
+	}
+
+	return current;
 }
 
 
