@@ -7,13 +7,23 @@ extern struct
 	pcb_t blocks[MAX_PROCESS];
 } pcb_stack;
 
-kobj_mem AllocHeapMem(int count);
-bool FreeHeapMem(kobj_mem komem);
-void PrintMemAllocState(void);
+void init(void);
+
 
 void main(void)
 {
 	printline("Kernel successfully loaded.");
+
+	init();
+
+	printline("%d", OpenFile("testfile", "sys", 0x03));
+
+	halt();
+}
+
+
+void init(void)
+{
 	syscall_init();
 	if(!io_init())
 	{
@@ -21,33 +31,6 @@ void main(void)
 		halt();
 	}
 	process_init();
-
-	printline("%d %d %d %d",
-			string_n_compare("a", "bc"),
-			string_n_compare("aa", "aaa"),
-			string_n_compare("aa", "aa"),
-			string_n_compare("asdf", "asdf"));
-
-	halt();
-}
-
-
-bool string_n_compare(char* str1, char* str2, int n)
-{
-	int i = 0;
-	bool ret = true;
-
-	while(str1[i] && str2[i] && i <= n)
-	{
-		if(str1[i] != str2[i])
-		{
-			ret = false;
-			break;
-		}
-		i++;
-	}
-
-	return ret;
 }
 
 
@@ -85,6 +68,16 @@ bool ReadHeapMem(kobj_mem komem, void* buffer, int offset, int count)
 	int buf = buffer;
 	int km = komem;
 	asm("int 0x25");
+}
+
+kobj_io OpenFile(char* name, char* ext, int open_mode)
+{
+	int om = open_mode;
+	char* et = ext;
+	char* nm = name;
+	int wd = 1;
+
+	asm("int	0x26");
 }
 
 void PrintMemAllocState(void)

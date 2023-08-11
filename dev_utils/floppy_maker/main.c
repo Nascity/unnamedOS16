@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
 int read_and_write(FILE* fp_read, char* filename)
 {
 	size_t count;
-	int start_cluster = cluster_ptr;
+	int start_cluster = cluster_ptr + 1;
 
 	while((count = fread(sector, 1, 512, fp_read)) == 512)
 	{

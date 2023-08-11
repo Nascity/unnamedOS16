@@ -5,6 +5,8 @@
 #define FILE_MAX_EXT		3
 #define FILE_MAX_SIZE		0xFFFF
 
+#define SECTORS_PER_HEAD	18
+
 #define MAX_FIT_ENTRY		16
 #define UNREGISTERED_FIT_ENTRY	-1
 
@@ -24,6 +26,8 @@
 #define SERIAL1_CLUSTER		0xFFFE
 #define INVALID_CLUSTER		0xFFFF
 
+#define EOC	0xFFFF
+
 // FIT index
 typedef int kobj_io;
 
@@ -42,11 +46,11 @@ typedef struct __dir_entry
 	char name[FILE_MAX_NAME];
 	char ext[FILE_MAX_EXT];
 	byte attrib;
-	int fliesize_high;
-	int filesize_low;
+	char reserved1[2];
+	int filesize;
 	date_entry creation_date;
 	date_entry opened_date;
-	char reserved[2];
+	char reserved2[2];
 	word start_cluster;
 } dir_entry;
 

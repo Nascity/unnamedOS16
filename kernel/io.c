@@ -1,14 +1,12 @@
 #include "inc/inc.h"
 
-void io_test(void);
-
 void format(char letter, int* ap);
 bool string_n_compare(char* str1, char* str2, int n);
 
 int open_file(int owner, int file_cluster, int open_mode);
 bool close_file(int FIT_index);
-bool write_file(int FIT_index, void* buffer, int offset, int count);
-bool read_file(int FIT_index, void* buffer, int offset, int count);
+bool write_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
+bool read_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 
 void write_file_byte(int write_ds, int offset, int value);
 byte read_file_byte(int read_ds, int offset);
@@ -16,6 +14,10 @@ byte read_file_byte(int read_ds, int offset);
 int get_file_FIT_index(int file_cluster);
 int get_file_cluster(int FIT_index);
 
+void get_dir_entry(int working_directory, int index, dir_entry* pde);
+void set_dir_entry(int working_directory, int index, dir_entry de);
+
+void calculate_chs_tuple(int cluster, int* cl, int* dh);
 bool load_cluster(int file_cluster, int FIT_index);
 bool save_cluster(int file_cluster, int FIT_index);
 
@@ -24,6 +26,10 @@ bool unregister_FIT(int FIT_index);
 
 int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster);
 int navigate_cluster_chain(int start, int count);
+int allocate_new_cluster(int start_cluster);
+
+bool get_file_size(int working_directory_FIT_index, int FIT_index, int* filesize);
+bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize);
 
 int open_serial_port(int owner, int port_num, int open_mode);
 
@@ -48,22 +54,7 @@ bool io_init(void)
 		FIT_FLAGS_READ | FIT_FLAGS_WRITE, &unused)) return false;
 	if(!load_cluster(ROOT_CLUSTER, unused)) return false;
 
-	io_test();
 	return true;
-}
-
-
-void io_test(void)
-{
-	char* buffer = "overwrite!";
-	char read[10];
-	int i;
-	int koio = open_file(0x100, 18, FILE_OPEN_READ | FILE_OPEN_WRITE);
-
-	read_file(koio, read, 0, 10);
-	printline(read);
-	write_file(koio, buffer, 0, 10);
-	printline("%d", save_cluster(18, koio));
 }
 
 
@@ -190,7 +181,7 @@ void printline(char* str, ...)
 }
 
 
-kobj_io io_open(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int open_mode)
+kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, int open_mode)
 {
 	int ret;
 	char* serial0 = "serial0";
@@ -202,8 +193,7 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME]
 	if(string_n_compare(serial1, name, 3))
 		return open_serial_port(cs, 1, open_mode);
 
-	start_cluster = find_file_cluster(name, ext,
-				get_file_cluster(working_dir));
+	start_cluster = find_file_cluster(name, ext, working_dir);
 	ret = open_file(cs, start_cluster, open_mode);
 	asm("mov	ax, word ptr [bp - 6]");
 	syscall_return();
@@ -261,7 +251,9 @@ bool string_n_compare(char* str1, char* str2, int n)
 	int i = 0;
 	bool ret = true;
 
-	while(str1[i] && str2[i] && i <= n)
+	if(!str1[0] || !str2[0]) return false;
+
+	while(str1[i] && str2[i] && i < n)
 	{
 		if(str1[i] != str2[i])
 		{
@@ -290,7 +282,7 @@ int open_file(int owner, int file_cluster, int open_mode)
 }
 
 
-bool write_file(int FIT_index, void* buffer, int offset, int count)
+bool write_file(int working_directory, int FIT_index, void* buffer, int offset, int count)
 {
 	int i;
 	int j = offset;
@@ -298,6 +290,20 @@ bool write_file(int FIT_index, void* buffer, int offset, int count)
 				FIT[FIT_index].start_cluster,
 				FIT[FIT_index].file_pointer / 512);
 	int new_cluster;
+	int filesize;
+
+	if(!(FIT[FIT_index].flags & FIT_FLAGS_WRITE))
+		return false;
+	if(!get_file_size(working_directory, FIT_index, &filesize))
+		return false;
+	if(offset > filesize)
+		return false;
+	if(offset + count > filesize)
+	{
+		filesize = offset + count;
+		if(!set_file_size(working_directory, FIT_index, filesize))
+			return false;
+	}
 
 	for(i = 0; i < count; i++)
 	{
@@ -307,7 +313,10 @@ bool write_file(int FIT_index, void* buffer, int offset, int count)
 				FIT[FIT_index].start_cluster,
 				FIT[FIT_index].file_pointer / 512);
 			if(new_cluster == INVALID_CLUSTER)
-				return false;
+			{
+				new_cluster = allocate_new_cluster(FIT[FIT_index].start_cluster);
+				if(new_cluster == 0) return false;
+			}
 			if(!save_cluster(loaded_cluster, FIT_index))
 				return false;
 			if(!load_cluster(new_cluster, FIT_index))
@@ -320,11 +329,11 @@ bool write_file(int FIT_index, void* buffer, int offset, int count)
 		j++;
 	}
 
-	return true;
+	return save_cluster(loaded_cluster, FIT_index);
 }
 
 
-bool read_file(int FIT_index, void* buffer, int offset, int count)
+bool read_file(int working_directory, int FIT_index, void* buffer, int offset, int count)
 {
 	int i;
 	int j = offset;
@@ -332,6 +341,17 @@ bool read_file(int FIT_index, void* buffer, int offset, int count)
 				FIT[FIT_index].start_cluster,
 				FIT[FIT_index].file_pointer / 512);
 	int new_cluster;
+	int filesize;
+
+	if(!(FIT[FIT_index].flags & FIT_FLAGS_READ))
+		return false;
+	if(!get_file_size(working_directory, FIT_index, &filesize))
+		return false;
+	if(offset + count > filesize)
+	{
+		count -= offset + count - filesize;
+		if(count <= 0) return false;
+	}
 
 	for(i = 0; i < count; i++)
 	{
@@ -418,11 +438,44 @@ int get_file_cluster(int FIT_index)
 }
 
 
+void get_dir_entry(int working_directory, int index, dir_entry* pde)
+{
+	int i;
+
+	for(i = 0; i < sizeof(dir_entry); i++)
+		((byte*)pde)[i] = read_file_byte(
+			0x3000 + working_directory * 0x20,
+			index * sizeof(dir_entry) + i);
+}
+
+
+void set_dir_entry(int working_directory, int index, dir_entry de)
+{
+	int i;
+
+	for(i = 0; i < sizeof(dir_entry); i++)
+		write_file_byte(
+			0x3000 + working_directory * 0x20,
+			index * sizeof(dir_entry) + i,
+			((byte*)&de)[i]);
+}
+
+
+void calculate_chs_tuple(int cluster, int* cl, int* dh)
+{
+	*dh = cluster / SECTORS_PER_HEAD;
+	*cl = cluster % SECTORS_PER_HEAD;
+}
+
+
 bool load_cluster(int file_cluster, int FIT_index)
 {
-	int bx = FIT_index * 512;
-	int cl = file_cluster & 0xFF;
+	int bx = FIT_index * 0x200;
+	int cl;
+	int dh;
 	int ret;
+
+	calculate_chs_tuple(file_cluster, &cl, &dh);
 #asm
 	mov	ax, #0x3000
 	mov	es, ax
@@ -431,7 +484,8 @@ bool load_cluster(int file_cluster, int FIT_index)
 	mov	bx, word ptr [bp - 6]
 	xor	ch, ch
 	mov	cl, byte ptr [bp - 8]
-	xor	dx, dx
+	xor	dl, dl
+	mov	dh, byte ptr [bp - 10]
 	int	0x13
 
 	jc	load_cluster_carry	; carry == 1 when error
@@ -441,7 +495,7 @@ bool load_cluster(int file_cluster, int FIT_index)
 load_cluster_carry:
 	xor	ax, ax
 load_cluster_end:
-	mov	word ptr [bp - 10], ax
+	mov	word ptr [bp - 12], ax
 #endasm
 	return ret;
 }
@@ -450,8 +504,11 @@ load_cluster_end:
 bool save_cluster(int file_cluster, int FIT_index)
 {
 	int bx = FIT_index * 512;
-	int cl = file_cluster & 0xFF;
+	int cl;
+	int dh;
 	int ret;
+
+	calculate_chs_tuple(file_cluster, &cl, &dh);
 #asm
 	mov	ax, #0x3000
 	mov	es, ax
@@ -460,7 +517,8 @@ bool save_cluster(int file_cluster, int FIT_index)
 	mov	bx, word ptr [bp - 6]
 	xor	ch, ch
 	mov	cl, byte ptr [bp - 8]
-	xor	dx, dx
+	xor	dl, dl
+	mov	dh, byte ptr [bp - 10]
 	int	0x13
 
 	jc	save_cluster_carry	; carry == 1 when error
@@ -470,7 +528,7 @@ bool save_cluster(int file_cluster, int FIT_index)
 save_cluster_carry:
 	xor	ax, ax
 save_cluster_end:
-	mov	word ptr [bp - 10], ax
+	mov	word ptr [bp - 12], ax
 #endasm
 	return ret;
 }
@@ -504,9 +562,21 @@ bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* register
 }
 
 
-int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster)
+int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory)
 {
+	dir_entry de;
+	int i;
 
+	for(i = 0; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(working_directory, i, &de);
+
+		if(string_n_compare(de.name, name, FILE_MAX_NAME)
+			&& string_n_compare(de.ext, ext, FILE_MAX_EXT))
+			return de.start_cluster;
+	}
+
+	return INVALID_CLUSTER;
 }
 
 
@@ -531,6 +601,100 @@ int navigate_cluster_chain(int start, int count)
 	return current;
 }
 
+
+int allocate_new_cluster(int start_cluster)
+{
+	word max = INVALID_CLUSTER;
+	word FAT_entry;
+	word current;
+	int i;
+
+	for(i = 3; i < 512 / sizeof(word); i++)
+	{
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * i);
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * i + 1) << 8;
+		
+		if(FAT_entry == 0xFFFF) max = i;
+		if(FAT_entry == 0x0000) break;
+
+		FAT_entry = 0;
+	}
+
+	current = start_cluster;
+
+	while(true)
+	{
+		FAT_entry = 0;
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * current);
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * current + 1) << 8;
+		if(FAT_entry == EOC || FAT_entry == 0) break;
+		current = FAT_entry;
+	}
+
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+			2 * current,
+			max + 1);
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+			2 * current + 1,
+			(max + 1) >> 8);
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+			2 * (max + 1),
+			0xFF);
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+			2 * (max + 1) + 1,
+			0xFF);
+
+	return max + 1;
+}
+
+
+bool get_file_size(int working_directory_FIT_index, int FIT_index, int* filesize)
+{
+	dir_entry de;
+	int i;
+
+	for(i = 0; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(working_directory_FIT_index, i, &de);
+
+		if(de.start_cluster == FIT[FIT_index].start_cluster)
+		{
+			*filesize = de.filesize;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize)
+{
+	dir_entry de;
+	int i;
+
+	for(i = 0; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(working_directory_FIT_index, i, &de);
+
+		if(de.start_cluster == FIT[FIT_index].start_cluster)
+		{
+			de.filesize = filesize;
+
+			set_dir_entry(working_directory_FIT_index, i, de);
+
+			return save_cluster(
+					get_file_cluster(working_directory_FIT_index),
+					working_directory_FIT_index);
+		}
+	}
+
+	return false;
+}
 
 int open_serial_port(int owner, int port_num, int open_mode)
 {
