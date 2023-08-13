@@ -3,7 +3,7 @@
 
 #define NULL	(void*)0
 
-typedef int bool;
+typedef char bool;
 typedef char byte;
 typedef short word;
 

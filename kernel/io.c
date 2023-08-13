@@ -32,6 +32,8 @@ bool get_file_size(int working_directory_FIT_index, int FIT_index, int* filesize
 bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize);
 
 int open_serial_port(int owner, int port_num, int open_mode);
+bool write_serial_port(int port_number, char* buffer, int count);
+bool read_serial_port(int port_number, char* buffer, int count);
 
 file_interaction_table_entry FIT[MAX_FIT_ENTRY];
 
@@ -202,19 +204,42 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, i
 
 bool io_close(int cs, int flags, kobj_io koio)
 {
+	int ret = unregister_FIT(koio);
 
+	asm("mov	ax, word ptr [bp - 6]");
+	syscall_return();
 }
 
 
-bool io_write(int cs, int flags, kobj_io koio, void* buffer, int offset, int count)
+bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count)
 {
+	int ret;
 
+	if(FIT[koio].start_cluster == SERIAL0_CLUSTER)
+		ret = write_serial_port(0, buffer, count);
+	else if(FIT[koio].start_cluster == SERIAL1_CLUSTER)
+		ret = write_serial_port(1, buffer, count);
+	else
+		ret = write_file(working_dir, koio, buffer, offset, count);
+
+	asm("mov	ax, word ptr [bp - 6]");
+	syscall_return();
 }
 
 
-bool io_read(int cs, int flags, kobj_io koio, void* buffer, int offset, int count)
+bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count)
 {
+	int ret;
 
+	if(FIT[koio].start_cluster == SERIAL0_CLUSTER)
+		ret = read_serial_port(0, buffer, count);
+	else if(FIT[koio].start_cluster == SERIAL1_CLUSTER)
+		ret = read_serial_port(1, buffer, count);
+	else
+		ret = read_file(working_dir, koio, buffer, offset, count);
+
+	asm("mov	ax, word ptr [bp - 6]");
+	syscall_return();
 }
 
 
@@ -286,9 +311,7 @@ bool write_file(int working_directory, int FIT_index, void* buffer, int offset, 
 {
 	int i;
 	int j = offset;
-	int loaded_cluster = navigate_cluster_chain(
-				FIT[FIT_index].start_cluster,
-				FIT[FIT_index].file_pointer / 512);
+	int loaded_cluster;
 	int new_cluster;
 	int filesize;
 
@@ -304,6 +327,11 @@ bool write_file(int working_directory, int FIT_index, void* buffer, int offset, 
 		if(!set_file_size(working_directory, FIT_index, filesize))
 			return false;
 	}
+	if(offset / 512 == 0)
+	{
+		load_cluster(FIT[FIT_index].start_cluster, FIT_index);
+		loaded_cluster = FIT[FIT_index].start_cluster;
+	}
 
 	for(i = 0; i < count; i++)
 	{
@@ -311,7 +339,7 @@ bool write_file(int working_directory, int FIT_index, void* buffer, int offset, 
 		{
 			new_cluster = navigate_cluster_chain(
 				FIT[FIT_index].start_cluster,
-				FIT[FIT_index].file_pointer / 512);
+				offset / 512);
 			if(new_cluster == INVALID_CLUSTER)
 			{
 				new_cluster = allocate_new_cluster(FIT[FIT_index].start_cluster);
@@ -327,6 +355,7 @@ bool write_file(int working_directory, int FIT_index, void* buffer, int offset, 
 
 		write_file_byte(0x3000 + FIT_index * 0x20, j, ((byte*)buffer)[i]);
 		j++;
+		offset++;
 	}
 
 	return save_cluster(loaded_cluster, FIT_index);
@@ -337,9 +366,7 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 {
 	int i;
 	int j = offset;
-	int loaded_cluster = navigate_cluster_chain(
-				FIT[FIT_index].start_cluster,
-				FIT[FIT_index].file_pointer / 512);
+	int loaded_cluster;
 	int new_cluster;
 	int filesize;
 
@@ -352,6 +379,11 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 		count -= offset + count - filesize;
 		if(count <= 0) return false;
 	}
+	if(offset / 512 == 0)
+	{
+		load_cluster(FIT[FIT_index].start_cluster, FIT_index);
+		loaded_cluster = FIT[FIT_index].start_cluster;
+	}
 
 	for(i = 0; i < count; i++)
 	{
@@ -359,8 +391,10 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 		{
 			new_cluster = navigate_cluster_chain(
 				FIT[FIT_index].start_cluster,
-				FIT[FIT_index].file_pointer / 512);
+				offset / 512);
 			if(new_cluster == INVALID_CLUSTER)
+				return false;
+			if(!save_cluster(loaded_cluster, FIT_index))
 				return false;
 			if(!load_cluster(new_cluster, FIT_index))
 				return false;
@@ -371,6 +405,7 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 		((byte*)buffer)[i] =
 			read_file_byte(0x3000 + FIT_index * 0x20, j);
 		j++;
+		offset++;
 	}
 
 	return true;
@@ -543,7 +578,6 @@ bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* register
 	fite.owner_pid = owner_pid;
 	fite.start_cluster = start_cluster;
 	fite.flags = open_mode | FIT_FLAGS_USED_ENTRY;
-	fite.file_pointer = 0;
 
 	for(i = 0; i < MAX_FIT_ENTRY; i++)
 	{
@@ -559,6 +593,17 @@ bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* register
 	FIT[i] = fite;
 	*registered_index = i;
 	return true;
+}
+
+
+bool unregister_FIT(int FIT_index)
+{
+	if(FIT[FIT_index].flags & FIT_FLAGS_USED_ENTRY)
+	{
+		FIT[FIT_index].flags &= !(FIT_FLAGS_USED_ENTRY);
+		return true;
+	}
+	else return false;
 }
 
 
@@ -697,6 +742,18 @@ bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize)
 }
 
 int open_serial_port(int owner, int port_num, int open_mode)
+{
+
+}
+
+
+bool write_serial_port(int port_number, char* buffer, int count)
+{
+
+}
+
+
+bool read_serial_port(int port_number, char* buffer, int count)
 {
 
 }

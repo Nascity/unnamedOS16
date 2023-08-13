@@ -8,7 +8,7 @@
 #define SECTORS_PER_HEAD	18
 
 #define MAX_FIT_ENTRY		16
-#define UNREGISTERED_FIT_ENTRY	-1
+#define UNREGISTERED_FIT_ENTRY	0xFFFF
 
 #define FILE_OPEN_WRITE		0x01
 #define FILE_OPEN_READ		0x02
@@ -59,7 +59,6 @@ typedef struct __file_interaction_table_entry
 	int owner_pid;
 	int start_cluster;
 	int flags;
-	int file_pointer;
 } file_interaction_table_entry;
 
 void printchar(int ch);
@@ -71,7 +70,7 @@ void printline(char* str, ...);
 bool io_init(void);
 kobj_io io_open(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int open_mode);
 bool io_close(int cs, int flags, kobj_io koio);
-bool io_write(int cs, int flags, kobj_io koio, void* buffer, int offset, int count);
-bool io_read(int cs, int flags, kobj_io koio, void* buffer, int offset, int count);
+bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count);
+bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count);
 
 #endif
