@@ -24,16 +24,17 @@ return_type handler(int return_cs, int flags, arg0, arg1, ...);
 초기화하는 내용은 다음과 같습니다.
 | 인터럽트 번호 | 핸들러 | 설명 |
 | --- | --- | --- |
-| 0x20 | process_start | 프로세스를 생성합니다 |
-| 0x21 | process_kill | 프로세스를 종료합니다 |
-| 0x22 | memory_alloc | 힙 메모리를 할당합니다 |
-| 0x23 | memory_free | 힙 메모리를 반환합니다 |
-| 0x24 | memory_write | 힙 메모리에 데이터를 씁니다 |
-| 0x25 | memory_read | 힙 메모리로부터 데이터를 읽습니다 |
-| 0x26 | io_open | 파일 또는 시리얼 포트를 엽니다. |
-| 0x27 | io_close | 파일 또는 시리얼 포트를 닫습니다. |
-| 0x28 | io_write | 파일 또는 시리얼 포트에 데이터를 씁니다. |
-| 0x29 | io_read | 파일 또는 시리얼 포트로부터 데이터를 읽습니다.|
+| 0x20 | process_start | 프로세스를 생성합니다. |
+| 0x21 | process_kill | 프로세스를 종료합니다. |
+| 0x22 | memory_alloc | 힙 메모리를 할당합니다. |
+| 0x23 | memory_free | 힙 메모리를 반환합니다. |
+| 0x24 | memory_write | 힙 메모리에 데이터를 씁니다. |
+| 0x25 | memory_read | 힙 메모리로부터 데이터를 읽습니다. |
+| 0x26 | io_open | 파일을 엽니다. |
+| 0x27 | io_close | 파일을 닫습니다. |
+| 0x28 | io_write | 파일에 데이터를 씁니다. |
+| 0x29 | io_read | 파일로부터 데이터를 읽습니다. |
+| 0x2A | create_file | 파일 또는 디렉토리를 생성합니다. |
 
 ### 메모리 관리
 커널은 프로세스의 메모리를 3가지로 나눕니다. code와 data 영역 4KiB, stack 영역 2KiB, 그리고 heap 영역 6KiB입니다. heap 영역은 16바이트, 32바이트, 64바이트, 128바이트, 그리고 256바이트 영역으로 다시 나뉩니다.
