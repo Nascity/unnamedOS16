@@ -10,6 +10,7 @@ UOS API의 문서입니다.
 | KOBJMEM | int | 2 | 메모리 커널 오브젝트 |
 | PTR | void* | 2 | 포인터 |
 | STRING | char* | 2 | 문자열 |
+| TIME_ENTRY | typedef struct | 6 | 시간 정보 구조체 |
 | WORD | short | 2 | word |
 | VOID | void | 0 | void |
 
@@ -26,9 +27,10 @@ UOS API의 문서입니다.
 ## 파일
 | 반환형 | 함수 | 설명 |
 | - | - | - |
-| KOBJIO | OpenFile(STRING strName, STRING strExt, WORD wOpenMode) | 파일 시스템에서 이름이 `strName`이고 확장자명이 `strExt`인 파일을 엽니다. 성공시 I/O 커널 오브젝트를, 실패시 `INVALID_KOBJIO`를 반환합니다.<br/>`wOpenMode`의 값으로는 다음이 가능합니다.<br/>* `FILE_OPEN_WRITE`<br/>* `FILE_OPEN_READ` |
+| KOBJIO | OpenFile(STRING strName, STRING strExt, WORD wOpenMode) | 파일 시스템에서 이름이 `strName`이고 확장자명이 `strExt`인 파일을 엽니다. 성공시 I/O 커널 오브젝트를, 실패시 `INVALID_KOBJIO`를 반환합니다.<br/>`wOpenMode`의 값으로는 다음이 가능합니다.<br/>* `FILE_OPEN_WRITE`: 파일을 쓰기 전용으로 엽니다.<br/>* `FILE_OPEN_READ`: 파일을 읽기 전용으로 엽니다. |
 | BOOL | CloseFile(KOBJIO koIo) | 열려있는 파일을 닫고 커널 오브젝트를 반환합니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
 | KOBJIO | GetWorkingDirectory(VOID) | 작업 디렉토리의 `KOBJIO`를 반환합니다. |
 | VOID | SetWorkingDirectory(KOBJIO koIo) | 작업 디렉토리를 `koIo`로 변경합니다. |
 | BOOL | WriteFile(KOBJIO koIoFile, PTR pBuffer, INT iOffset, INT iCount) | `koIoFile`에 해당하는 파일의 `iOffset` 바이트 오프셋에 `pBuffer`의 데이터를 `iCount` 바이트만큼 씁니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
 | BOOL | ReadFile(KOBJIO koIoFile, PTR pBuffer, INT iOffset, INT iCount) | `koIoFile`에 해당하는 파일의 `iOffset` 바이트 오프셋에 있는 데이터를 `iCount` 바이트만큼 `pBuffer`에 읽습니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
+| BOOL | CreateFile(STRING strName, STRING strExt, BYTE bAttrib) | 현재 디렉토리에 이름이 `strName`이고 확장자명이 `strExt`인 파일을 생성합니다. 성공시 `TRUE`를, 실패시 `FALSE`를 반환합니다.<br/>`bAttrib`의 값으로는 다음이 가능합니다.<br/>* `FILE_CREATE_READONLY`: 읽기 전용 파일을 생성합니다.<br/>* `FILE_CREATE_HIDDEN`: 숨김파일을 생성합니다.<br/>* `FILE_CREATE_SYSTEM`: 시스템 파일을 생성합니다.<br/>* `FILE_CREATE_SUBDIR`: 서브 디렉토리를 생성합니다. |
