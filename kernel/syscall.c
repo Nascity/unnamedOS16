@@ -13,7 +13,8 @@ void* handlers[] =
 	io_open,
 	io_close,
 	io_write,
-	io_read
+	io_read,
+	create_file
 };
 
 void replace_handler(int int_number, void* handler);

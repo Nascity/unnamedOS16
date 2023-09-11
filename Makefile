@@ -1,13 +1,15 @@
 MAKEFLAGS += --silent
 
-OUTDIR := bin
-MAINRELFLPMKR := ../../..
+OUTDIR		:= bin
+MAINRELFLPMKR	:= ../../..
 
-FLPMKRARGS := $(MAINRELFLPMKR)/$(OUTDIR)/bootloader.bin $(MAINRELFLPMKR)/$(OUTDIR)/kernel.bin solstice $(MAINRELFLPMKR)/$(OUTDIR)/test.bin testfile
-DIRS := kernel
+FLPMKRARGS	:= $(MAINRELFLPMKR)/$(OUTDIR)/bootloader.bin	\
+		$(MAINRELFLPMKR)/$(OUTDIR)/kernel.bin solstice	\
+		$(MAINRELFLPMKR)/$(OUTDIR)/test.bin testfile
+DIRS		:= kernel
 
-QEMUFLAGS := -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy,readonly=off
-QEMUDEBUGFLAGS := $(QEMUFLAGS) -S -gdb tcp::8000
+QEMUFLAGS	:= -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy,readonly=off
+QEMUDEBUGFLAGS	:= $(QEMUFLAGS) -S -gdb tcp::8000
 
 all: floppy
 
@@ -28,3 +30,6 @@ debug:
 debug_remote:
 	echo type \"target remote localhost:8000\" in gdb.
 	qemu-system-i386 $(QEMUDEBUGFLAGS)
+
+floppy_view:
+	cd dev_utils/floppy_viewer/bin && ./floppy_viewer $(MAINRELFLPMKR)/$(OUTDIR)/floppy.img

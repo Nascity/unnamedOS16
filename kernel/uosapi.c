@@ -133,3 +133,18 @@ ReadFile(
 	INT	wd = koIoWorkingDir;
 	asm("int 0x29");
 }
+
+
+BOOL
+CreateFile(
+	STRING	strName,
+	STRING	strExt,
+	BYTE	bAttrib
+	)
+{
+	INT	working_dir = koIoWorkingDir;
+	INT	ext = strExt;
+	INT	name = strName;
+	INT	attrib = (INT)bAttrib && 0xFF;
+	asm("int 0x2A");
+}

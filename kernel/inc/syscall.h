@@ -13,8 +13,9 @@
 #define SYSCALL_IO_CLOSE	0x27
 #define SYSCALL_IO_WRITE	0x28
 #define SYSCALL_IO_READ		0x29
+#define SYSCALL_CREATE_FILE	0x2A
 
-#define SYSCALL_END		0x29
+#define SYSCALL_END		0x2A
 
 void syscall_init(void);
 void syscall_return(void);

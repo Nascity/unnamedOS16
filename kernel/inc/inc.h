@@ -12,3 +12,4 @@ typedef short word;
 #include "memory.h"
 #include "process.h"
 #include "syscall.h"
+#include "time.h"

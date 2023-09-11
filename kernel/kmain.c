@@ -6,16 +6,16 @@ void init(void);
 
 void main(void)
 {
-	CHAR	buffer[40];
 	KOBJIO	koio;
+	CHAR	test[10];
 
 	printline("Kernel successfully loaded.");
 	init();
 
 	koio = OpenFile("testfile", "sys", FILE_OPEN_READ);
-	ReadFile(koio, buffer, 0, 38);
-	printline(buffer);
-
+	ReadFile(koio, test, 0, 9);
+	printline(test);
+	
 	halt();
 }
 

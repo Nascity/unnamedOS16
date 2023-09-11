@@ -3,19 +3,20 @@
 void format(char letter, int* ap);
 bool string_n_compare(char* str1, char* str2, int n);
 
-int open_file(int owner, int file_cluster, int open_mode);
-bool close_file(int FIT_index);
+int open_file(int owner, int working_dir, int file_cluster, int open_mode);
 bool write_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 bool read_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 
 void write_file_byte(int write_ds, int offset, int value);
 byte read_file_byte(int read_ds, int offset);
 
+int can_create_file(int working_dir);
+
 int get_file_FIT_index(int file_cluster);
 int get_file_cluster(int FIT_index);
 
 void get_dir_entry(int working_directory, int index, dir_entry* pde);
-void set_dir_entry(int working_directory, int index, dir_entry de);
+void set_dir_entry(int working_directory, int index, dir_entry* pde);
 
 void calculate_chs_tuple(int cluster, int* cl, int* dh);
 bool load_cluster(int file_cluster, int FIT_index);
@@ -31,9 +32,10 @@ int allocate_new_cluster(int start_cluster);
 bool get_file_size(int working_directory_FIT_index, int FIT_index, int* filesize);
 bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize);
 
-int open_serial_port(int owner, int port_num, int open_mode);
-bool write_serial_port(int port_number, char* buffer, int count);
-bool read_serial_port(int port_number, char* buffer, int count);
+// pte_creation and pte_opened are optional parameters. Must be set to NULL if not used.
+void get_file_time(int working_dir, int file_cluster, time_entry* pte_creation, time_entry* pte_opened);
+// If NULL is passed as a pte_opened, the time is set to current time.
+bool set_file_time(int working_dir, int file_cluster, time_entry* pte_creation, time_entry* pte_opened);
 
 file_interaction_table_entry FIT[MAX_FIT_ENTRY];
 
@@ -57,6 +59,17 @@ bool io_init(void)
 	if(!load_cluster(ROOT_CLUSTER, unused)) return false;
 
 	return true;
+}
+
+
+void io_test(void)
+{
+	int	a = 0x01;
+	int	b = "txt";
+	int	c = "newfile";
+	int	d = 1;
+	
+	asm("int 0x2A");
 }
 
 
@@ -186,17 +199,12 @@ void printline(char* str, ...)
 kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, int open_mode)
 {
 	int ret;
-	char* serial0 = "serial0";
-	char* serial1 = "serial1";
 	int start_cluster;
 
-	if(string_n_compare(serial0, name, 8))
-		return open_serial_port(cs, 0, open_mode);
-	if(string_n_compare(serial1, name, 3))
-		return open_serial_port(cs, 1, open_mode);
-
 	start_cluster = find_file_cluster(name, ext, working_dir);
-	ret = open_file(cs, start_cluster, open_mode);
+	ret = open_file(cs, working_dir, start_cluster, open_mode);
+	set_file_time(working_dir, start_cluster, NULL, NULL);
+
 	asm("mov	ax, word ptr [bp - 6]");
 	syscall_return();
 }
@@ -215,12 +223,7 @@ bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer
 {
 	int ret;
 
-	if(FIT[koio].start_cluster == SERIAL0_CLUSTER)
-		ret = write_serial_port(0, buffer, count);
-	else if(FIT[koio].start_cluster == SERIAL1_CLUSTER)
-		ret = write_serial_port(1, buffer, count);
-	else
-		ret = write_file(working_dir, koio, buffer, offset, count);
+	ret = write_file(working_dir, koio, buffer, offset, count);
 
 	asm("mov	ax, word ptr [bp - 6]");
 	syscall_return();
@@ -231,14 +234,57 @@ bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer,
 {
 	int ret;
 
-	if(FIT[koio].start_cluster == SERIAL0_CLUSTER)
-		ret = read_serial_port(0, buffer, count);
-	else if(FIT[koio].start_cluster == SERIAL1_CLUSTER)
-		ret = read_serial_port(1, buffer, count);
-	else
-		ret = read_file(working_dir, koio, buffer, offset, count);
+	ret = read_file(working_dir, koio, buffer, offset, count);
 
 	asm("mov	ax, word ptr [bp - 6]");
+	syscall_return();
+}
+
+
+bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], byte attrib)
+{
+	dir_entry de;
+	time_entry te;
+	word curret_max_cluster = INVALID_CLUSTER;
+	word FAT_entry;
+	int i;
+	int de_index;
+
+	if((de_index = can_create_file(working_dir)) == -1)
+	{
+		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+
+	for (i = 0; i < sizeof(de); i++)
+		((byte*)&de)[i] = 0;
+	for (i = 0; i < FILE_MAX_NAME; i++)
+		de.name[i] = name[i];
+	for (i = 0; i < FILE_MAX_EXT; i++)
+		de.ext[i] = ext[i];
+	de.attrib = attrib | DIR_ENTRY_ATTRIB_USED;
+	de.filesize = 0;
+	
+	for (i = 3; i < 512 / sizeof(word); i++)
+	{
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * i);
+		FAT_entry |= read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20,
+					2 * i + 1) << 8;
+		
+		if(FAT_entry == 0xFFFF) curret_max_cluster = i;
+		if(FAT_entry == 0x0000) break;
+
+		FAT_entry = 0;
+	}
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * i, 0xFF);
+	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * i + 1, 0xFF);
+	de.start_cluster = i;
+
+	get_time(&te);
+	set_dir_entry(working_dir, de_index, &de);
+	set_file_time(working_dir, i, &te, NULL);
+	asm("mov	ax, #0x01");
 	syscall_return();
 }
 
@@ -292,7 +338,7 @@ bool string_n_compare(char* str1, char* str2, int n)
 }
 
 
-int open_file(int owner, int file_cluster, int open_mode)
+int open_file(int owner, int working_dir, int file_cluster, int open_mode)
 {
 	int FIT_index;
 	
@@ -302,7 +348,10 @@ int open_file(int owner, int file_cluster, int open_mode)
 	if(!register_FIT(owner, file_cluster, open_mode, &FIT_index))
 		return UNREGISTERED_FIT_ENTRY;
 	if(!load_cluster(file_cluster, FIT_index))
+	{
+		unregister_FIT(FIT_index);
 		return UNREGISTERED_FIT_ENTRY;
+	}
 	return FIT_index;
 }
 
@@ -417,6 +466,7 @@ void write_file_byte(int write_ds, int offset, int value)
 	int ds = write_ds;
 	int off = offset;
 	int val = value;
+
 #asm
 	mov	ax, ds
 	push	ax
@@ -430,6 +480,7 @@ void write_file_byte(int write_ds, int offset, int value)
 	pop	ax
 	mov	ds, ax
 #endasm
+	return;
 }
 
 
@@ -451,6 +502,23 @@ byte read_file_byte(int read_ds, int offset)
 
 	mov	ax, di
 #endasm
+	return;
+}
+
+
+int can_create_file(int working_dir)
+{
+	dir_entry de;
+	int i;
+
+	for(i = 0; i < 512 / sizeof(dir_entry); i++)
+	{
+		get_dir_entry(working_dir, i, &de);
+		if(de.attrib & DIR_ENTRY_ATTRIB_USED)
+			continue;
+		return i;
+	}
+	return -1;
 }
 
 
@@ -484,7 +552,7 @@ void get_dir_entry(int working_directory, int index, dir_entry* pde)
 }
 
 
-void set_dir_entry(int working_directory, int index, dir_entry de)
+void set_dir_entry(int working_directory, int index, dir_entry* pde)
 {
 	int i;
 
@@ -492,7 +560,9 @@ void set_dir_entry(int working_directory, int index, dir_entry de)
 		write_file_byte(
 			0x3000 + working_directory * 0x20,
 			index * sizeof(dir_entry) + i,
-			((byte*)&de)[i]);
+			((byte*)pde)[i]);
+
+	save_cluster(ROOT_CLUSTER, FIT_ROOT_INDEX);
 }
 
 
@@ -741,19 +811,47 @@ bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize)
 	return false;
 }
 
-int open_serial_port(int owner, int port_num, int open_mode)
-{
 
+void get_file_time(int working_dir, int file_cluster, time_entry* pte_creation, time_entry* pte_opened)
+{
+	dir_entry de;
+	int i;
+
+	for(i = 0; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(working_dir, i, &de);
+		if(file_cluster == de.start_cluster)
+		{
+			if(pte_creation) *pte_creation = de.creation_date;
+			if(pte_opened) *pte_opened = de.opened_date;
+			return;
+		}
+	}
 }
 
 
-bool write_serial_port(int port_number, char* buffer, int count)
+bool set_file_time(int working_dir, int file_cluster, time_entry* pte_creation, time_entry* pte_opened)
 {
+	dir_entry de;
+	time_entry te;
+	int i;
 
-}
+	for(i = 0; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(working_dir, i, &de);
 
+		if(file_cluster == de.start_cluster)
+		{
+			if(!get_time(&te)) return false;
 
-bool read_serial_port(int port_number, char* buffer, int count)
-{
+			if(pte_creation) de.creation_date = *pte_creation;
+			if(pte_opened) de.opened_date = *pte_opened;
+			else de.opened_date = te;
 
+			set_dir_entry(working_dir, i, &de);
+			return true;
+		}
+	}
+
+	return false;
 }

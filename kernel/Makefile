@@ -5,7 +5,7 @@ LD := ld86
 NS := nasm
 
 OUTDIR := ../bin
-OBJS := kmain.o io.o memory.o process.o syscall.o uosapi.o
+OBJS := kmain.o io.o memory.o process.o syscall.o time.o uosapi.o
 
 CCFLAGS := -ansi -0c -I$(INCDIR)
 LDFLAGS := -M -d
@@ -28,6 +28,8 @@ process.o:
 	$(CC) $(CCFLAGS) -o process.o process.c
 syscall.o:
 	$(CC) $(CCFLAGS) -o syscall.o syscall.c
+time.o:
+	$(CC) $(CCFLAGS) -o time.o time.c
 uosapi.o:
 	$(CC) $(CCFLAGS) -o uosapi.o uosapi.c
 
