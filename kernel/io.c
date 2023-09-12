@@ -2,15 +2,19 @@
 
 void format(char letter, int* ap);
 bool string_n_compare(char* str1, char* str2, int n);
+int string_n_size_compare(char* str1, char* str2, int n);
 
 int open_file(int owner, int working_dir, int file_cluster, int open_mode);
 bool write_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 bool read_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 
+bool create_directory(int working_dir, word file_cluster);
+
 void write_file_byte(int write_ds, int offset, int value);
 byte read_file_byte(int read_ds, int offset);
 
 int can_create_file(int working_dir);
+void sort_dir_entry(int working_dir);
 
 int get_file_FIT_index(int file_cluster);
 int get_file_cluster(int FIT_index);
@@ -59,17 +63,6 @@ bool io_init(void)
 	if(!load_cluster(ROOT_CLUSTER, unused)) return false;
 
 	return true;
-}
-
-
-void io_test(void)
-{
-	int	a = 0x01;
-	int	b = "txt";
-	int	c = "newfile";
-	int	d = 1;
-	
-	asm("int 0x2A");
 }
 
 
@@ -250,17 +243,23 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	int i;
 	int de_index;
 
-	if((de_index = can_create_file(working_dir)) == -1)
+	if((de_index = can_create_file(working_dir)) == -1
+		|| find_file_cluster(name, ext, working_dir) != INVALID_CLUSTER)
 	{
 		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+	if(attrib & DIR_ENTRY_ATTRIB_SUBDIR)
+	{
+		create_directory(working_dir, name);
 		syscall_return();
 	}
 
 	for (i = 0; i < sizeof(de); i++)
 		((byte*)&de)[i] = 0;
-	for (i = 0; i < FILE_MAX_NAME; i++)
+	for (i = 0; i < FILE_MAX_NAME && name[i]; i++)
 		de.name[i] = name[i];
-	for (i = 0; i < FILE_MAX_EXT; i++)
+	for (i = 0; i < FILE_MAX_EXT && ext[i]; i++)
 		de.ext[i] = ext[i];
 	de.attrib = attrib | DIR_ENTRY_ATTRIB_USED;
 	de.filesize = 0;
@@ -279,11 +278,18 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	}
 	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * i, 0xFF);
 	write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * i + 1, 0xFF);
+	save_cluster(FAT_CLUSTER, FIT_FAT_INDEX);
 	de.start_cluster = i;
 
 	get_time(&te);
 	set_dir_entry(working_dir, de_index, &de);
 	set_file_time(working_dir, i, &te, NULL);
+	sort_dir_entry(working_dir);
+	if(attrib & DIR_ENTRY_ATTRIB_SUBDIR)
+	{
+		create_directory(working_dir, de.start_cluster);
+		syscall_return();
+	}
 	asm("mov	ax, #0x01");
 	syscall_return();
 }
@@ -322,9 +328,7 @@ bool string_n_compare(char* str1, char* str2, int n)
 	int i = 0;
 	bool ret = true;
 
-	if(!str1[0] || !str2[0]) return false;
-
-	while(str1[i] && str2[i] && i < n)
+	while(i < n && (str1[i] || str2[i]))
 	{
 		if(str1[i] != str2[i])
 		{
@@ -335,6 +339,20 @@ bool string_n_compare(char* str1, char* str2, int n)
 	}
 
 	return ret;
+}
+
+
+int string_n_size_compare(char* str1, char* str2, int n)
+{
+	int i = 0;
+
+	while(i < n)
+	{
+		if(str1[i] - str2[i])
+			return str1[i] - str2[i];
+		i++;
+	}
+	return 0;
 }
 
 
@@ -461,6 +479,39 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 }
 
 
+bool create_directory(int working_dir, word file_cluster)
+{
+	time_entry te;
+	dir_entry de;
+	int dir_kobj;
+	int i;
+
+	dir_kobj = open_file(KERNEL_SEGMENT, working_dir, file_cluster, FILE_OPEN_WRITE | FILE_OPEN_READ);
+	if(dir_kobj == UNREGISTERED_FIT_ENTRY)
+		return false;
+	for (i = 0; i < sizeof(de); i++)
+		((byte*)&de)[i] = 0;
+	
+	de.name[0] = '.';
+	de.attrib = DIR_ENTRY_ATTRIB_USED | DIR_ENTRY_ATTRIB_SUBDIR;
+	de.filesize = 0;
+	de.start_cluster = get_file_cluster(dir_kobj);
+	set_dir_entry(dir_kobj, 0, &de);
+
+	get_time(&te);
+	set_file_time(dir_kobj, 0, &te, NULL);
+
+	de.name[1] = '.';
+	de.start_cluster = file_cluster;
+	set_dir_entry(dir_kobj, 1, &de);
+
+	get_time(&te);
+	set_file_time(dir_kobj, 1, &te, NULL);
+
+	return unregister_FIT(dir_kobj);
+}
+
+
 void write_file_byte(int write_ds, int offset, int value)
 {
 	int ds = write_ds;
@@ -514,11 +565,50 @@ int can_create_file(int working_dir)
 	for(i = 0; i < 512 / sizeof(dir_entry); i++)
 	{
 		get_dir_entry(working_dir, i, &de);
-		if(de.attrib & DIR_ENTRY_ATTRIB_USED)
-			continue;
-		return i;
+		if(!(de.attrib & DIR_ENTRY_ATTRIB_USED))
+			return i;
 	}
 	return -1;
+}
+
+
+void sort_dir_entry(int working_dir)
+{
+	dir_entry de;
+	dir_entry de_min;
+	int i;
+	int j;
+	int end;
+	int min;
+
+	for (i = 2; i < 512 / sizeof(dir_entry); i++)
+	{
+		get_dir_entry(working_dir, i, &de);
+		if (!(de.attrib & DIR_ENTRY_ATTRIB_USED))
+			end = i - 1;
+	}
+	for (i = 2; i <= end; i++)
+	{
+		min = i;
+		get_dir_entry(working_dir, min, &de_min);
+		if (!(de_min.attrib & DIR_ENTRY_ATTRIB_USED))
+			continue;
+		for (j = i; j <= end; j++)
+		{
+			get_dir_entry(working_dir, j, &de);
+			if (!(de.attrib & DIR_ENTRY_ATTRIB_USED))
+				continue;
+			if (string_n_size_compare(de_min.name, de.name, FILE_MAX_NAME) > 0)
+				min = j;
+			if (string_n_size_compare(de_min.name, de.name, FILE_MAX_NAME) == 0
+				&& string_n_size_compare(de_min.ext, de.ext, FILE_MAX_EXT) > 0)
+				min = j;
+		}
+		get_dir_entry(working_dir, i, &de);
+		get_dir_entry(working_dir, min, &de_min);
+		set_dir_entry(working_dir, i, &de_min);
+		set_dir_entry(working_dir, min, &de);
+	}
 }
 
 
@@ -800,7 +890,7 @@ bool set_file_size(int working_directory_FIT_index, int FIT_index, int filesize)
 		{
 			de.filesize = filesize;
 
-			set_dir_entry(working_directory_FIT_index, i, de);
+			set_dir_entry(working_directory_FIT_index, i, &de);
 
 			return save_cluster(
 					get_file_cluster(working_directory_FIT_index),

@@ -36,7 +36,7 @@ typedef struct __TIME_ENTRY
 	BYTE	hour;
 	BYTE	minute;
 	BYTE	second;
-} TIME_ENTRY, *PTIME_ENTRY
+} TIME_ENTRY, *PTIME_ENTRY;
 
 // Kernel object type definition
 typedef int KOBJIO;

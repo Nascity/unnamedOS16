@@ -9,7 +9,7 @@
 
 #define SECTORS_PER_HEAD	18
 
-#define MAX_FIT_ENTRY		16
+#define MAX_FIT_ENTRY		64
 #define UNREGISTERED_FIT_ENTRY	0xFFFF
 
 #define FILE_OPEN_WRITE		0x01

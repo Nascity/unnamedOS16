@@ -142,9 +142,9 @@ CreateFile(
 	BYTE	bAttrib
 	)
 {
-	INT	working_dir = koIoWorkingDir;
+	INT	attrib = (INT)bAttrib && 0xFF;
 	INT	ext = strExt;
 	INT	name = strName;
-	INT	attrib = (INT)bAttrib && 0xFF;
+	INT	working_dir = koIoWorkingDir;
 	asm("int 0x2A");
 }

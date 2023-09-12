@@ -12,10 +12,8 @@ void main(void)
 	printline("Kernel successfully loaded.");
 	init();
 
-	koio = OpenFile("testfile", "sys", FILE_OPEN_READ);
-	ReadFile(koio, test, 0, 9);
-	printline(test);
-	
+	CreateFile("dirtest", "", FILE_CREATE_SUBDIR);
+
 	halt();
 }
 

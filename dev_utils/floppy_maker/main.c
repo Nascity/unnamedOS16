@@ -69,6 +69,7 @@ int read_and_write(FILE* fp_read, char* filename)
 	size_t count;
 	int start_cluster = cluster_ptr + 1;
 
+	memset(sector, 0, 512);
 	while((count = fread(sector, 1, 512, fp_read)) == 512)
 	{
 		printf("%-15s\t%ld bytes read from %s\r\n", FILE_READ, count, filename);

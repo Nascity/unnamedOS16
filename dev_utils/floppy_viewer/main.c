@@ -52,7 +52,7 @@ void display_file_info(dir_entry de)
 			de.opened_date.day,
 			(de.filesize_high << 16) | de.filesize_low);
 	for(i = 0; i < 8; i++) printf("%c", de.name[i]);
-	if(de.name[0] != '.') printf(".");
+	if(de.name[0] != '.' && de.ext[0] != 0) printf(".");
 	for(i = 0; i < 3; i++) printf("%c", de.ext[i]);
 	printf("\r\n");
 }
