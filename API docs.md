@@ -10,7 +10,7 @@ UOS API의 문서입니다.
 | KOBJMEM | int | 2 | 메모리 커널 오브젝트 |
 | PTR | void* | 2 | 포인터 |
 | STRING | char* | 2 | 문자열 |
-| TIME_ENTRY | typedef struct | 6 | 시간 정보 구조체 |
+| TIME_ENTRY | typedef struct | 6 | 시간 정보 구조체<br/>* `bYear`<br/>* `bMonth`<br/>* `bDay`<br/>* `bHour`<br/>* `bMinute`<br/>* `bSecond` |
 | WORD | short | 2 | word |
 | VOID | void | 0 | void |
 
@@ -34,3 +34,4 @@ UOS API의 문서입니다.
 | BOOL | WriteFile(KOBJIO koIoFile, PTR pBuffer, INT iOffset, INT iCount) | `koIoFile`에 해당하는 파일의 `iOffset` 바이트 오프셋에 `pBuffer`의 데이터를 `iCount` 바이트만큼 씁니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
 | BOOL | ReadFile(KOBJIO koIoFile, PTR pBuffer, INT iOffset, INT iCount) | `koIoFile`에 해당하는 파일의 `iOffset` 바이트 오프셋에 있는 데이터를 `iCount` 바이트만큼 `pBuffer`에 읽습니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
 | BOOL | CreateFile(STRING strName, STRING strExt, BYTE bAttrib) | 현재 디렉토리에 이름이 `strName`이고 확장자명이 `strExt`인 파일을 생성합니다. 성공시 `TRUE`를, 실패시 `FALSE`를 반환합니다.<br/>`bAttrib`의 값으로는 다음이 가능합니다.<br/>* `FILE_CREATE_READONLY`: 읽기 전용 파일을 생성합니다.<br/>* `FILE_CREATE_HIDDEN`: 숨김파일을 생성합니다.<br/>* `FILE_CREATE_SYSTEM`: 시스템 파일을 생성합니다.<br/>* `FILE_CREATE_SUBDIR`: 서브 디렉토리를 생성합니다. |
+| BOOL | DeleteFile(STRING strName, STRING strExt) | 현재 디렉토리에 이름이 `strName`이고 확장자명이 `strExt`인 파일을 제거합니다. 성공시 `TRUE`를, 실패시 `FALSE`를 반환합니다. |
