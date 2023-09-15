@@ -35,6 +35,7 @@ return_type handler(int return_cs, int flags, arg0, arg1, ...);
 | 0x28 | io_write | 파일에 데이터를 씁니다. |
 | 0x29 | io_read | 파일로부터 데이터를 읽습니다. |
 | 0x2A | create_file | 파일 또는 디렉토리를 생성합니다. |
+| 0x2B | delete_file | 파일 또는 디렉토리를 지웁니다. |
 
 ### 메모리 관리
 커널은 프로세스의 메모리를 3가지로 나눕니다. code와 data 영역 4KiB, stack 영역 2KiB, 그리고 heap 영역 6KiB입니다. heap 영역은 16바이트, 32바이트, 64바이트, 128바이트, 그리고 256바이트 영역으로 다시 나뉩니다.
