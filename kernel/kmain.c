@@ -1,5 +1,5 @@
 #include "inc/inc.h"
-#include "inc/uosapi.h"
+#include "../uosapi/inc/uosapi.h"
 
 void init(void);
 
@@ -12,7 +12,16 @@ void main(void)
 	printline("Kernel successfully loaded.");
 	init();
 
-	CreateFile("dirtest", "", FILE_CREATE_SUBDIR);
+	CreateFile("test0", "txt", 0);
+	CreateFile("test1", "txt", 0);
+	CreateFile("test2", "txt", 0);
+
+	DeleteFile("test1", "txt");
+	DeleteFile("test2", "txt");
+
+	CreateFile("test3", "txt", 0);
+	CreateFile("test4", "txt", 0);
+	CreateFile("test5", "txt", 0);
 
 	halt();
 }

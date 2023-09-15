@@ -14,7 +14,8 @@ void* handlers[] =
 	io_close,
 	io_write,
 	io_read,
-	create_file
+	create_file,
+	delete_file
 };
 
 void replace_handler(int int_number, void* handler);
@@ -29,8 +30,7 @@ void syscall_init(void)
 		replace_handler(i, handlers[i - SYSCALL_BEGIN]);
 
 	// DEBUG
-	printline("Syscall %x to %x initialized.",
-			SYSCALL_BEGIN, SYSCALL_END);
+	printline("Syscall %x to %x initialized.", SYSCALL_BEGIN, SYSCALL_END);
 }
 
 

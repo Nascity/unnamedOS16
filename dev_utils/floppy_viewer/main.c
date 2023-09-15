@@ -20,10 +20,10 @@ int main(int argc, char* argv[])
 	printf("\r\nbootsector found.\r\n\r\n");
 	fseek(fp_floppy, ROOT_DIR_FILE_POS, SEEK_SET);
 
-	while(1)
+	for (i = 0; i < 512 / sizeof(dir_entry); i++)
 	{
 		fread(&de, 1, sizeof(dir_entry), fp_floppy);
-		if(!(de.attrib & DIR_ENTRY_ATTRIB_USED)) break;
+		if(!(de.attrib & DIR_ENTRY_ATTRIB_USED)) continue;
 		display_file_info(de);
 	}
 }

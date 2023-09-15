@@ -31,7 +31,7 @@ syscall.o:
 time.o:
 	$(CC) $(CCFLAGS) -o time.o time.c
 uosapi.o:
-	$(CC) $(CCFLAGS) -o uosapi.o uosapi.c
+	$(CC) $(CCFLAGS) -o uosapi.o ../uosapi/uosapi.c
 
 
 bootloader:

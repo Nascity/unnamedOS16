@@ -29,7 +29,7 @@ bool save_cluster(int file_cluster, int FIT_index);
 bool register_FIT(int owner_pid, int start_cluster, int open_mode, int* registered_index);
 bool unregister_FIT(int FIT_index);
 
-int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster);
+int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory_cluster, dir_entry* pde);
 int navigate_cluster_chain(int start, int count);
 int allocate_new_cluster(int start_cluster);
 
@@ -90,58 +90,25 @@ void printchar(int ch)
 
 void printhex(int num, bool uppercase)
 {
-	char str[8];
-	int i;
-	int temp;
-
-	//  0   1   2   3   4   5   6   7
-	// '0' 'x' '0' '0' '0' '0'  0   0
-	for (i = 0; i < 8; i++) str[i] = '0';
-	str[1] = 'x';
-	str[6] = 0;	
-
-	for (i = 5; i >= 2; i--)
-	{
-		temp = (num % 16);
-		if (temp < 10) str[i] = temp + '0';
-		else str[i] = uppercase ? temp - 10 + 'A' : temp - 10 + 'a';
-		num /= 16;
-
-		if (num == 0) break;
-	}
-
-	printstring(str);
+	if(num >= 16)
+		printhex(num / 16, uppercase);
+	if(uppercase)
+		printchar("0123456789ABCDEF"[num % 16]);
+	else
+		printchar("0123456789abcdef"[num % 16]);
 }
 
 
 void printnumber(int num)
 {
-	bool is_negative = num < 0 ? true : false;
-	char str[8];
-	int i;
-
-	str[7] = 0;
-
-	if(num == 0)
+	if(num == 0xFFFF)
 	{
-		str[6] = '0';
-		i = 6;
+		printstring("-32768");
+		return;
 	}
-	else
-	{
-		if(is_negative) num *= -1;
-
-		for (i = 6; i >= 0; i--)
-		{
-			str[i] = (num % 10) + '0';
-			num /= 10;
-	
-			if (num == 0) break;
-		}
-
-		if(is_negative) str[--i] = '-';
-	}
-	printstring(&str[i]);
+	if(num > 10)
+		printnumber(num / 10);
+	printchar(num % 10 - '0');
 }
 
 
@@ -194,7 +161,7 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, i
 	int ret;
 	int start_cluster;
 
-	start_cluster = find_file_cluster(name, ext, working_dir);
+	start_cluster = find_file_cluster(name, ext, working_dir, NULL);
 	ret = open_file(cs, working_dir, start_cluster, open_mode);
 	set_file_time(working_dir, start_cluster, NULL, NULL);
 
@@ -244,7 +211,7 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	int de_index;
 
 	if((de_index = can_create_file(working_dir)) == -1
-		|| find_file_cluster(name, ext, working_dir) != INVALID_CLUSTER)
+		|| find_file_cluster(name, ext, working_dir, NULL) != INVALID_CLUSTER)
 	{
 		asm("mov	ax, #0x00");
 		syscall_return();
@@ -290,6 +257,34 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 		create_directory(working_dir, de.start_cluster);
 		syscall_return();
 	}
+	asm("mov	ax, #0x01");
+	syscall_return();
+}
+
+
+bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT])
+{
+	dir_entry de;
+	int de_index;
+	word FAT_entry;
+	word current;
+
+	if((current = find_file_cluster(name, ext, working_dir, &de_index)) == INVALID_CLUSTER)
+	{
+		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+	while ((FAT_entry =
+		(read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * current)
+		 | (read_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * current + 1) << 8)))
+		!= INVALID_CLUSTER)
+	{
+		current = FAT_entry;
+		write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * current, INVALID_CLUSTER & 0xFF);
+		write_file_byte(0x3000 + FIT_FAT_INDEX * 0x20, 2 * current + 1, INVALID_CLUSTER & 0xFF);
+	}
+	de.attrib = !DIR_ENTRY_ATTRIB_USED;
+	set_dir_entry(working_dir, de_index, &de);
 	asm("mov	ax, #0x01");
 	syscall_return();
 }
@@ -767,7 +762,7 @@ bool unregister_FIT(int FIT_index)
 }
 
 
-int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory)
+int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int working_directory, int* pde_index)
 {
 	dir_entry de;
 	int i;
@@ -778,7 +773,11 @@ int find_file_cluster(char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], int work
 
 		if(string_n_compare(de.name, name, FILE_MAX_NAME)
 			&& string_n_compare(de.ext, ext, FILE_MAX_EXT))
+		{
+			if(pde_index)
+				*pde_index = i;
 			return de.start_cluster;
+		}
 	}
 
 	return INVALID_CLUSTER;

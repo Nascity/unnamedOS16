@@ -148,3 +148,15 @@ CreateFile(
 	INT	working_dir = koIoWorkingDir;
 	asm("int 0x2A");
 }
+
+BOOL
+DeleteFile(
+	STRING	strName,
+	STRING	strExt
+	)
+{
+	INT	ext = strExt;
+	INT	name = strName;
+	INT	working_dir = koIoWorkingDir;
+	asm("int 0x2B");
+}

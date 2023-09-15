@@ -70,5 +70,6 @@ bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer
 bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count);
 
 bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT], byte attrib);
+bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME], char ext[FILE_MAX_EXT]);
 
 #endif
