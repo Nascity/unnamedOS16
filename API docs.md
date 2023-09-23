@@ -4,17 +4,27 @@ UOS API의 문서입니다.
 | 자료형 | typedef | 크기 (bytes) | 설명 |
 | - | - | - | - |
 | BOOL | char | 1 | boolean |
-| BYTE | char | 1 | byte |
+| CHAR | char | 1 | char |
+| BYTE | unsigned char | 1 | byte |
 | INT | int | 2 | int |
 | KOBJIO | int | 2 | I/O 커널 오브젝트 |
 | KOBJMEM | int | 2 | 메모리 커널 오브젝트 |
+| PINT | int* | 2 | INT형 포인터 |
 | PTR | void* | 2 | 포인터 |
+| PWORD | unsigned short* | 2 | WORD형 포인터
 | STRING | char* | 2 | 문자열 |
 | TIME_ENTRY | typedef struct | 6 | 시간 정보 구조체<br/>* `bYear`<br/>* `bMonth`<br/>* `bDay`<br/>* `bHour`<br/>* `bMinute`<br/>* `bSecond` |
-| WORD | short | 2 | word |
+| UINT | unsigned int | 2 | 부호 없는 INT형 |
+| WORD | unsigned short | 2 | word |
 | VOID | void | 0 | void |
 
-## 프로세스
+## 화면 출력
+| 반환형 | 함수 | 설명 |
+| - | - | - |
+| VOID | PrintChar(CHAR chCharacter) | `chCharacter`를 현재 커서의 위치에 출력합니다. |
+| VOID | PrintFormat(STRING strFormat, ...) | `strFormat`을 `...`의 내용으로 포맷해서 출력합니다. |
+| VOID | PrintHex(UINT iNumber, BOOL bCapitalize, BOOL bPrefix) | `iNumber`를 16진수로 출력합니다. `bCapitalize`가 `TRUE`이면 대문자로 출력되고, `bPrefix`가 `TRUE`이면 16진수 숫자 앞에 `0x` 접두어가 붙습니다. 출력할 수 있는 값의 범위는 0000 ~ FFFF입니다. |
+| VOID | PrintNumber(INT iNumber) | `iNumber`를 10진수로 출력합니다. 출력할 수 있는 값의 범위는 -32768 ~ 32767입니다. |
 
 ## 메모리
 | 반환형 | 함수 | 설명 |
@@ -35,3 +45,8 @@ UOS API의 문서입니다.
 | BOOL | ReadFile(KOBJIO koIoFile, PTR pBuffer, INT iOffset, INT iCount) | `koIoFile`에 해당하는 파일의 `iOffset` 바이트 오프셋에 있는 데이터를 `iCount` 바이트만큼 `pBuffer`에 읽습니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
 | BOOL | CreateFile(STRING strName, STRING strExt, BYTE bAttrib) | 현재 디렉토리에 이름이 `strName`이고 확장자명이 `strExt`인 파일을 생성합니다. 성공시 `TRUE`를, 실패시 `FALSE`를 반환합니다.<br/>`bAttrib`의 값으로는 다음이 가능합니다.<br/>* `FILE_CREATE_READONLY`: 읽기 전용 파일을 생성합니다.<br/>* `FILE_CREATE_HIDDEN`: 숨김파일을 생성합니다.<br/>* `FILE_CREATE_SYSTEM`: 시스템 파일을 생성합니다.<br/>* `FILE_CREATE_SUBDIR`: 서브 디렉토리를 생성합니다. |
 | BOOL | DeleteFile(STRING strName, STRING strExt) | 현재 디렉토리에 이름이 `strName`이고 확장자명이 `strExt`인 파일을 제거합니다. 성공시 `TRUE`를, 실패시 `FALSE`를 반환합니다. |
+
+## 프로세스
+| 반환형 | 함수 | 설명 |
+| - | - | - |
+| BOOL | CreateProcess(STRING strName, STRING strExt, STRING strArgs, PINT piReturn) | 파일 시스템에서 이름이 `strName`이고 확장자명이 `strExt`인 파일을 메모리에 적재해 실행합니다. 이때, `strArgs`를 전달인자로 전달합니다. 프로세스가 종료한 후 리턴하는 값은 `piReturn`을 통해 전달됩니다.<br/>* 주의사항: 실행 가능하지 않은 파일을 실행함으로써 발생하는 문제의 책임은 사용자에 있습니다. |
