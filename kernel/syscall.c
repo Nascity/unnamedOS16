@@ -5,7 +5,7 @@
 void* handlers[] =
 {
 	process_start,
-	process_kill,
+	process_return,
 	memory_alloc,
 	memory_free,
 	memory_write,

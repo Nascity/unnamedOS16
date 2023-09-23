@@ -3,7 +3,7 @@
 extern struct
 {
 	int count;
-	pcb_t* top;
+	int top_seg;
 	pcb_t blocks[MAX_PROCESS];
 } pcb_stack;
 
@@ -65,7 +65,7 @@ bool memory_free(int cs, int flags, kobj_mem komem)
 
 bool memory_write(int cs, int flags, kobj_mem komem, void* buffer, int offset, int count)
 {
-	int ds = komem < _256BYTE_SLICE_START ? cs + 0x2000 : cs;
+	int ds = komem < _256BYTE_SLICE_START ? cs + KERNEL_MEMORY_START_SEGMENT : cs;
 	int* target = komem_to_addr(komem);
 	int seg_count = 0;
 	int multiplier = 0;
@@ -134,7 +134,7 @@ memory_write_ending:
 
 bool memory_read(int cs, int flags, kobj_mem komem, void* buffer, int offset, int count)
 {
-	int ds = komem < _256BYTE_SLICE_START ? cs + 0x2000 : cs;
+	int ds = komem < _256BYTE_SLICE_START ? cs + KERNEL_MEMORY_START_SEGMENT : cs;
 	int* target = komem_to_addr(komem);
 	int seg_count = 0;
 	int multiplier = 0;

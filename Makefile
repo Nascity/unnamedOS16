@@ -6,7 +6,7 @@ MAINRELFLPMKR	:= ../../..
 FLPMKRARGS	:= $(MAINRELFLPMKR)/$(OUTDIR)/bootloader.bin	\
 		$(MAINRELFLPMKR)/$(OUTDIR)/kernel.bin solstice	\
 		$(MAINRELFLPMKR)/$(OUTDIR)/test.bin testfile
-DIRS		:= kernel
+DIRS		:= kernel shell
 
 QEMUFLAGS	:= -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy,readonly=off
 QEMUDEBUGFLAGS	:= $(QEMUFLAGS) -S -gdb tcp::8000
@@ -16,6 +16,7 @@ all: floppy
 dirs:
 	for dir in $(DIRS); do	\
 	cd $$dir && make;	\
+	cd ..;			\
 	done
 
 floppy: dirs
@@ -33,3 +34,6 @@ debug_remote:
 
 floppy_view:
 	cd dev_utils/floppy_viewer/bin && ./floppy_viewer $(MAINRELFLPMKR)/$(OUTDIR)/floppy.img
+
+floppy_raw:
+	hexdump -C $(OUTDIR)/floppy.img

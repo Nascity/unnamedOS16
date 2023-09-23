@@ -1,21 +1,23 @@
 MAKEFLAGS += --silent
 
-CC := bcc
-LD := ld86
-NS := nasm
+CC 	:= bcc
+LD 	:= ld86
+NS 	:= nasm
 
-OUTDIR := ../bin
-OBJS := kmain.o io.o memory.o process.o syscall.o time.o uosapi.o
+OUTDIR	:= ../bin
+OBJS	:= kmain.o					\
+	io.o memory.o process.o syscall.o time.o	\
+	uosapi_file.o uosapi_io.o uosapi_mem.o uosapi_proc.o
 
-CCFLAGS := -ansi -0c -I$(INCDIR)
-LDFLAGS := -M -d
-NSFLAGS := -fbin
+CCFLAGS	:= -ansi -0c
+LDFLAGS	:= -M -d
+NSFLAGS	:= -fbin
 
 
 all: bootloader kernel
 
 clean:
-	rm *.o
+	rm $(OBJS)
 
 
 kmain.o:
@@ -30,8 +32,14 @@ syscall.o:
 	$(CC) $(CCFLAGS) -o syscall.o syscall.c
 time.o:
 	$(CC) $(CCFLAGS) -o time.o time.c
-uosapi.o:
-	$(CC) $(CCFLAGS) -o uosapi.o ../uosapi/uosapi.c
+uosapi_file.o:
+	$(CC) $(CCFLAGS) -o uosapi_file.o ../uosapi/uosapi_file.c
+uosapi_io.o:
+	$(CC) $(CCFLAGS) -o uosapi_io.o ../uosapi/uosapi_io.c
+uosapi_mem.o:
+	$(CC) $(CCFLAGS) -o uosapi_mem.o ../uosapi/uosapi_mem.c
+uosapi_proc.o:
+	$(CC) $(CCFLAGS) -o uosapi_proc.o ../uosapi/uosapi_proc.c
 
 
 bootloader:

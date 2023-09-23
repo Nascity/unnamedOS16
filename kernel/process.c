@@ -3,93 +3,185 @@
 struct
 {
 	int count;
-	pcb_t* top;	// this pointer points to the top of the stack
+	int top_seg;
 	pcb_t blocks[MAX_PROCESS];
 } pcb_stack;
 
-bool new_process_possible(void);
+extern bool get_file_size(int working_directory_FIT_index, int FIT_index, int* filesize);
+extern int get_file_cluster(int FIT_index);
+extern void calculate_chs_tuple(int cluster, int* cl, int* dh);
+
+bool new_process_possible(int process_segment_count);
 void pcb_stack_init(void);
+
+int io_open_wrapper(int working_dir, char* name, char* ext);
+bool io_close_wrapper(int koio);
+
+bool load_process(int file_cluster, int segment, int count);
+void init_pcb_t(int process_seg_count, char* filename);
+void process_farjump(int cs, int ip, int bp);
 
 // -----------------------------------------------------------------------
 // Process operations
 void process_init(void)
 {
-	// Initialize PCB stack
 	pcb_stack_init();
-
-	// DEBUG
-	printline("PCB stack initialized.");
 }
 
 
-void process_start(int return_cs, int flags, char name[MAX_PROCESS_NAME])
+bool new_process_possible(int process_segment_count)
 {
-	pcb_t* new_pcb = pcb_stack.top + 1;
-	pcb_t* old_pcb = pcb_stack.top;
-	int* ap = &return_cs;
-	int i;
-	int new_pid = KERNEL_SEGMENT + pcb_stack.count * 0x0100;
-
-	if(!new_process_possible()) 
-	{
-		printline("Process stack is full.");
-		syscall_return();
-	}
-
-	old_pcb->ip = *(ap - 1);
-	old_pcb->sp = ap - 1;
-
-	new_pcb->pid = new_pid;
-	for(i = 0; i < MAX_PROCESS_NAME; i++)
-		new_pcb->name[i] = name[i];
-
-	(pcb_stack.top)++;
-	(pcb_stack.count)++;
-
-	printline("Created process %s. (%x)", new_pcb->name, new_pid);
-#asm
-	mov	ax, word ptr [bp - 10]
-	mov	ds, ax
-	mov	ss, ax
-
-	xor	bp, bp
-	xor	sp, sp
-
-	push	ax
-	push	#0x00
-	retf
-#endasm
+	if (pcb_stack.count == 0)
+		return true;
+	return (pcb_stack.blocks[pcb_stack.count - 1].start_seg
+		+ (pcb_stack.blocks[pcb_stack.count - 1].seg_count
+			+ process_segment_count) * 0x20)
+		<= USER_SPACE_END_SEGMENT
+		&& pcb_stack.count < MAX_PROCESS;
 }
 
-
-void process_kill(int return_cs, int flags, int return_val)
-{
-
-}
-
-
-bool new_process_possible(void)
-{
-	return pcb_stack.count <= MAX_PROCESS;
-}
 
 // -----------------------------------------------------------------------
 // PCB operations
 void pcb_stack_init(void)
 {
-	pcb_t kernel_block;
-	char* kernel_name = "init";
+	pcb_stack.count = 0;
+	pcb_stack.top_seg = USER_SPACE_START_SEGMENT;
+}
+
+
+// -----------------------------------------------------------------------
+// Syscalls
+bool process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, int* ret)
+{
+	int process_base_file;
+	int process_base_file_size;
+	int process_seg_count;
+
+	process_base_file = io_open_wrapper(working_dir, filename, ext);
+	if(process_base_file == 0xFFFF
+		|| !get_file_size(working_dir, process_base_file, &process_base_file_size))
+	{
+		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+	process_seg_count = process_base_file_size % 512 == 0 ?
+				process_base_file_size / 512
+				: process_base_file_size / 512 + 1;
+	if(!new_process_possible(process_seg_count))
+	{
+		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+	if(!load_process(get_file_cluster(process_base_file),
+				pcb_stack.top_seg,
+				process_seg_count))
+	{
+		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+
+	io_close_wrapper(process_base_file);
+	printline("here");
+	init_pcb_t(process_seg_count, filename);
+	process_farjump(USER_SPACE_START_SEGMENT, (pcb_stack.top_seg - process_seg_count) * 512, 5000);
+}
+
+
+void process_return(int cs, int flags, int return_value)
+{
+
+}
+
+// -----------------------------------------------------------------------
+// io.c wrappers
+int io_open_wrapper(int working_dir, char* name, char* ext)
+{
+	int m = FILE_OPEN_READ;
+	int e = ext;
+	int n = name;
+	int w = working_dir;
+	asm("int 0x26");
+}
+
+
+bool io_close_wrapper(int koio)
+{
+	int ki = koio;
+	asm("int 0x27");
+}
+
+
+// -----------------------------------------------------------------------
+// Extras
+bool load_process(int file_cluster, int segment, int count)
+{
+	int es = segment;
+	int cnt = count;
+	int cl;
+	int dh;
+	int ret;
+
+	calculate_chs_tuple(file_cluster, &cl, &dh);
+#asm
+	mov	ax, word ptr [bp - 6]
+	mov	es, ax
+
+	mov	ah, #0x02
+	mov	al, byte ptr [bp - 8]
+	xor	bx, bx
+	xor	ch, ch
+	mov	cl, byte ptr [bp - 10]
+	mov	dh, byte ptr [bp - 12]
+	xor	dl, dl
+	int	0x13
+
+	jc	load_process_carry
+	xor	ax, ax
+	inc	ax
+	jmp	load_process_end
+load_process_carry:
+	xor	ax, ax
+load_process_end:
+	mov	word ptr [bp - 14], ax
+#endasm
+	return ret;
+}
+
+
+void init_pcb_t(int process_seg_count, char* filename)
+{
+	pcb_t* ptarget = &(pcb_stack.blocks[pcb_stack.count]);
 	int i;
 
-	// assigning information of the kernel
-	kernel_block.pid = KERNEL_SEGMENT;
-	for(i = 0; i < MAX_PROCESS_NAME; i++)
-		kernel_block.name[i] = kernel_name[i];
-	kernel_block.ip = halt;
-	kernel_block.sp = 0;
-	MAT_init(&(kernel_block.mem_alloc_table), kernel_block.pid);
+	ptarget->pid = 0x100 * (pcb_stack.count + 1);
+	ptarget->start_seg = pcb_stack.top_seg;
+	ptarget->seg_count = process_seg_count;
+	for (i = 0; i < FILE_MAX_NAME && filename[i]; i++)
+		ptarget->name[i] = filename[i];
+	MAT_init(&(ptarget->mem_alloc_table));
+	pcb_stack.top_seg += process_seg_count;
+}
 
-	pcb_stack.top = pcb_stack.blocks;
-	pcb_stack.blocks[0] = kernel_block;
-	pcb_stack.count = 1;
+
+void process_farjump(int cs, int ip, int bp)
+{
+	int code_seg = cs;
+	int ins_ptr = ip;
+	int base_ptr = bp;
+
+#asm
+	mov	ax, word ptr [bp - 6]
+	mov	bx, word ptr [bp - 8]
+	mov	bp, word ptr [bp - 10]
+	mov	sp, bp
+
+	mov	ds, ax
+	mov	ss, ax
+
+	pushf
+	push	ax
+	push	bx
+	iret
+#endasm
 }

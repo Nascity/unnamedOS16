@@ -1,25 +1,26 @@
 #ifndef __PROCESS_H__
 #define __PROCESS_H__
 
-#define MAX_PROCESS		16
-#define MAX_PROCESS_NAME	16
+#define MAX_PROCESS_NAME	8
+#define MAX_PROCESS		32
+
+#define KERNEL_SPACE_START_SEGMENT	0x100
+#define KERNEL_SPACE_END_SEGMENT	0x400
+#define USER_SPACE_START_SEGMENT	0x400
+#define USER_SPACE_END_SEGMENT		0x2000
 
 typedef struct __pcb_t
 {
 	int pid;
+	int start_seg;
+	int seg_count;
 	char name[MAX_PROCESS_NAME];
 
-	int ip;
-	int sp;
-	// flags
-	// cs
-	// ip	<--- sp
-	
 	MAT_t mem_alloc_table;
 } pcb_t;
 
 void process_init(void);
-void process_start(int return_cs, int flags, char name[MAX_PROCESS_NAME]);
-void process_kill(int return_cs, int flags, int return_val);
+bool process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, int* ret);
+void process_return(int cs, int flags, int return_value);
 
 #endif

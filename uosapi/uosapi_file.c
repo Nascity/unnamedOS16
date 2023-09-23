@@ -1,62 +1,7 @@
 #include "inc/uosapi.h"
 
-
-/* ---------- Memory API ---------- */
-KOBJMEM
-AllocHeapMem(
-	INT	iCount
-	)
-{
-	INT count = iCount;
-	asm("int 0x22");
-}
-
-
-BOOL
-FreeHeapMem(
-	KOBJMEM	koMem
-	)
-{
-	KOBJMEM km = koMem;
-	asm("int 0x23");
-}
-
-
-BOOL
-WriteHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
-	INT	iCount
-	)
-{
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	km = koMem;
-	asm("int 0x24");
-}
-
-
-BOOL
-ReadHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
-	INT	iCount
-	)
-{
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	km = koMem;
-	asm("int 0x25");
-}
-
-
 /* ---------- File API ---------- */
 KOBJIO	koIoWorkingDir = 1;
-
 
 KOBJIO
 OpenFile(
@@ -72,7 +17,6 @@ OpenFile(
 	asm("int 0x26");
 }
 
-
 BOOL
 CloseFile(
 	KOBJIO	koIo
@@ -82,7 +26,6 @@ CloseFile(
 	asm("int 0x27");
 }
 
-
 KOBJIO
 GetWorkingDirectory(
 	VOID
@@ -91,7 +34,6 @@ GetWorkingDirectory(
 	return koIoWorkingDir;
 }
 
-
 VOID
 SetWorkingDirectory(
 	KOBJIO	koIoDir
@@ -99,7 +41,6 @@ SetWorkingDirectory(
 {
 	koIoWorkingDir = koIoDir;
 }
-
 
 BOOL
 WriteFile(
@@ -117,7 +58,6 @@ WriteFile(
 	asm("int 0x28");
 }
 
-
 BOOL
 ReadFile(
 	KOBJIO	koIoFile,
@@ -134,7 +74,6 @@ ReadFile(
 	asm("int 0x29");
 }
 
-
 BOOL
 CreateFile(
 	STRING	strName,
@@ -142,7 +81,7 @@ CreateFile(
 	BYTE	bAttrib
 	)
 {
-	INT	attrib = (INT)bAttrib && 0xFF;
+	INT	attrib = bAttrib;
 	INT	ext = strExt;
 	INT	name = strName;
 	INT	working_dir = koIoWorkingDir;

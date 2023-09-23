@@ -8,7 +8,8 @@ int open_file(int owner, int working_dir, int file_cluster, int open_mode);
 bool write_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 bool read_file(int working_directory, int FIT_index, void* buffer, int offset, int count);
 
-bool create_directory(int working_dir, word file_cluster);
+bool create_directory(int working_dir, word file_cluster, word parent);
+bool delete_directory(int working_dir, word file_cluster);
 
 void write_file_byte(int write_ds, int offset, int value);
 byte read_file_byte(int read_ds, int offset);
@@ -88,7 +89,7 @@ void printchar(int ch)
 }
 
 
-void printhex(int num, bool uppercase)
+void printhex(unsigned int num, bool uppercase)
 {
 	if(num >= 16)
 		printhex(num / 16, uppercase);
@@ -108,7 +109,7 @@ void printnumber(int num)
 	}
 	if(num > 10)
 		printnumber(num / 10);
-	printchar(num % 10 - '0');
+	printchar(num % 10 + '0');
 }
 
 
@@ -216,11 +217,6 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 		asm("mov	ax, #0x00");
 		syscall_return();
 	}
-	if(attrib & DIR_ENTRY_ATTRIB_SUBDIR)
-	{
-		create_directory(working_dir, name);
-		syscall_return();
-	}
 
 	for (i = 0; i < sizeof(de); i++)
 		((byte*)&de)[i] = 0;
@@ -254,7 +250,7 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	sort_dir_entry(working_dir);
 	if(attrib & DIR_ENTRY_ATTRIB_SUBDIR)
 	{
-		create_directory(working_dir, de.start_cluster);
+		create_directory(working_dir, de.start_cluster, working_dir);
 		syscall_return();
 	}
 	asm("mov	ax, #0x01");
@@ -266,12 +262,19 @@ bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 {
 	dir_entry de;
 	int de_index;
+	int subdir;
 	word FAT_entry;
 	word current;
 
 	if((current = find_file_cluster(name, ext, working_dir, &de_index)) == INVALID_CLUSTER)
 	{
 		asm("mov	ax, #0x00");
+		syscall_return();
+	}
+	get_dir_entry(working_dir, de_index, &de);
+	if(de.attrib & DIR_ENTRY_ATTRIB_SUBDIR)
+	{
+		delete_directory(working_dir, de.start_cluster);
 		syscall_return();
 	}
 	while ((FAT_entry =
@@ -474,7 +477,7 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 }
 
 
-bool create_directory(int working_dir, word file_cluster)
+bool create_directory(int working_dir, word file_cluster, word parent)
 {
 	time_entry te;
 	dir_entry de;
@@ -490,20 +493,42 @@ bool create_directory(int working_dir, word file_cluster)
 	de.name[0] = '.';
 	de.attrib = DIR_ENTRY_ATTRIB_USED | DIR_ENTRY_ATTRIB_SUBDIR;
 	de.filesize = 0;
-	de.start_cluster = get_file_cluster(dir_kobj);
+	de.start_cluster = file_cluster;
 	set_dir_entry(dir_kobj, 0, &de);
 
 	get_time(&te);
 	set_file_time(dir_kobj, 0, &te, NULL);
 
 	de.name[1] = '.';
-	de.start_cluster = file_cluster;
+	de.start_cluster = parent;
 	set_dir_entry(dir_kobj, 1, &de);
 
 	get_time(&te);
 	set_file_time(dir_kobj, 1, &te, NULL);
 
 	return unregister_FIT(dir_kobj);
+}
+
+
+bool delete_directory(int working_dir, word file_cluster)
+{
+	dir_entry de;
+	int subdir;
+	int i;
+
+	subdir = open_file(KERNEL_SEGMENT, working_dir, file_cluster, FILE_OPEN_WRITE | FILE_OPEN_READ);
+	if(subdir == UNREGISTERED_FIT_ENTRY)
+		return false;
+	for (i = 2; i < 512 / sizeof(de); i++)
+	{
+		get_dir_entry(subdir, i, &de);
+		if(!(de.attrib & DIR_ENTRY_ATTRIB_USED))
+			continue;
+		if(de.attrib & DIR_ENTRY_ATTRIB_SUBDIR)
+			delete_directory(subdir, de.start_cluster);
+		delete_file(KERNEL_SEGMENT, 0, subdir, de.name, de.ext);
+	}
+	return true;
 }
 
 
@@ -647,7 +672,7 @@ void set_dir_entry(int working_directory, int index, dir_entry* pde)
 			index * sizeof(dir_entry) + i,
 			((byte*)pde)[i]);
 
-	save_cluster(ROOT_CLUSTER, FIT_ROOT_INDEX);
+	save_cluster(get_file_cluster(working_directory), working_directory);
 }
 
 
