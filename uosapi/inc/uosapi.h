@@ -22,6 +22,7 @@ typedef char		BOOL;
 typedef char		CHAR;
 typedef unsigned char	BYTE;
 typedef int		INT;
+typedef char*		PBOOL;
 typedef int*		PINT;
 typedef void*		PTR;
 typedef unsigned short*	PWORD;
@@ -30,7 +31,23 @@ typedef unsigned int	UINT;
 typedef unsigned short	WORD;
 #define VOID		void
 
+// Kernel object type definition
+typedef int KOBJIO;
+typedef int KOBJMEM;
+
 // Structs
+typedef struct __ARGS
+{
+	UINT	uiArgCount;
+	KOBJMEM	kmArgs;
+} ARGS, *PARGS;
+
+typedef struct __ARGS_ENTRY
+{
+	UINT	uiArgLength;
+	KOBJMEM	kmArg;
+} ARGS_ENTRY, *PARGS_ENTRY;
+
 typedef struct __TIME_ENTRY
 {
 	BYTE	bYear;
@@ -41,9 +58,12 @@ typedef struct __TIME_ENTRY
 	BYTE	bSecond;
 } TIME_ENTRY, *PTIME_ENTRY;
 
-// Kernel object type definition
-typedef int KOBJIO;
-typedef int KOBJMEM;
+/* ---------- Entrypoint API ---------- */
+INT
+UosMain(
+	PTR	pCmdLine,
+	ARGS	args
+       );
 
 /* ---------- Screen IO API ---------- */
 VOID

@@ -1,7 +1,10 @@
 #include "../uosapi/inc/uosapi.h"
 
-void	main(void)
+INT
+UosMain(
+	PTR	pCmdLine,
+	ARGS	args
+       )
 {
-	PrintFormat("Hello!");
-	return 0;
+	return 5;
 }

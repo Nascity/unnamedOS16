@@ -19,7 +19,9 @@ bool io_close_wrapper(int koio);
 
 bool load_process(int file_cluster, int segment, int count);
 void init_pcb_t(int process_seg_count, char* filename);
-void process_farjump(int cs, int ip, int bp);
+void process_args_copy(int sp, char* args);
+void process_setup_stack(int ip, int cmdline, int stack_top);
+int process_farjump(int cs, int ip, int bp);
 
 // -----------------------------------------------------------------------
 // Process operations
@@ -52,46 +54,47 @@ void pcb_stack_init(void)
 
 // -----------------------------------------------------------------------
 // Syscalls
-bool process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, int* ret)
+int process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, bool* success)
 {
 	int process_base_file;
 	int process_base_file_size;
 	int process_seg_count;
+	int process_stack_offset;
 
+	*success = 1;
 	process_base_file = io_open_wrapper(working_dir, filename, ext);
 	if(process_base_file == 0xFFFF
 		|| !get_file_size(working_dir, process_base_file, &process_base_file_size))
 	{
+		*success = 0;
 		asm("mov	ax, #0x00");
 		syscall_return();
 	}
 	process_seg_count = process_base_file_size % 512 == 0 ?
 				process_base_file_size / 512
 				: process_base_file_size / 512 + 1;
-	if(!new_process_possible(process_seg_count))
+	if(!new_process_possible(process_seg_count)
+		|| !load_process(get_file_cluster(process_base_file),
+			pcb_stack.top_seg,
+			process_seg_count)
+		|| !io_close_wrapper(process_base_file))
 	{
-		asm("mov	ax, #0x00");
-		syscall_return();
-	}
-	if(!load_process(get_file_cluster(process_base_file),
-				pcb_stack.top_seg,
-				process_seg_count))
-	{
+		*success = 0;
 		asm("mov	ax, #0x00");
 		syscall_return();
 	}
 
-	io_close_wrapper(process_base_file);
-	printline("here");
 	init_pcb_t(process_seg_count, filename);
-	process_farjump(USER_SPACE_START_SEGMENT, (pcb_stack.top_seg - process_seg_count) * 512, 5000);
+
+	process_stack_offset = -(pcb_stack.top_seg - process_seg_count * 512 - USER_SPACE_START_SEGMENT);
+	process_args_copy(-(pcb_stack.top_seg - USER_SPACE_START_SEGMENT), args);
+	process_setup_stack(((char*)process_farjump) + 0x23, -(pcb_stack.top_seg - USER_SPACE_START_SEGMENT), process_stack_offset);
+	process_farjump(USER_SPACE_START_SEGMENT,
+			-process_stack_offset,
+			process_stack_offset - 6);
+	syscall_return();
 }
 
-
-void process_return(int cs, int flags, int return_value)
-{
-
-}
 
 // -----------------------------------------------------------------------
 // io.c wrappers
@@ -160,28 +163,90 @@ void init_pcb_t(int process_seg_count, char* filename)
 	for (i = 0; i < FILE_MAX_NAME && filename[i]; i++)
 		ptarget->name[i] = filename[i];
 	MAT_init(&(ptarget->mem_alloc_table));
-	pcb_stack.top_seg += process_seg_count;
+	pcb_stack.top_seg += process_seg_count * 512;
 }
 
 
-void process_farjump(int cs, int ip, int bp)
+void process_args_copy(int sp, char* args)
 {
-	int code_seg = cs;
-	int ins_ptr = ip;
-	int base_ptr = bp;
+	int i;
+	int ch;	// bp - 8
 
+	for (i = 0; args[i]; i++, sp++)
+	{
+		ch = args[i];
 #asm
-	mov	ax, word ptr [bp - 6]
-	mov	bx, word ptr [bp - 8]
-	mov	bp, word ptr [bp - 10]
+		;	si = sp
+		mov	si, word ptr [bp + 4]
+
+		;	bl = args[i]
+		mov	bl, byte ptr [bp - 8]
+
+		mov	ax, #0x400
+		mov	ds, ax
+
+		;	[0400h:si] = args[i]
+		mov	byte ptr [si], bl
+
+		mov	ax, #0x100
+		mov	ds, ax
+#endasm
+	}
+}
+
+
+void process_setup_stack(int ip, int cmdline, int stack_top)
+{
+	int unused;
+#asm
+	mov	di, word ptr [bp + 4]	; di = ip
+	mov	bx, word ptr [bp + 6]	; bx = cmdline
+	mov	si, word ptr [bp + 8]	; si = stack_top
+
+	mov	ax, #0x400
+	mov	ds, ax
+
+	sub	si, #0x02
+	mov	word ptr [si], bx
+	sub	si, #0x02
+	mov	word ptr [si], #0x100
+	sub	si, #0x02
+	mov	word ptr [si], di
+
+	mov	ax, #0x100
+	mov	ds, ax
+#endasm
+}
+
+
+int process_farjump(int cs, int ip, int bp)
+{
+	int unused;
+#asm
+	mov	dx, bp
+
+	mov	cx, word ptr [bp + 4]
+	mov	ax, cx
+	mov	cx, word ptr [bp + 6]
+	mov	bx, cx
+	mov	cx, word ptr [bp + 8]
+	mov	bp, cx
 	mov	sp, bp
 
 	mov	ds, ax
 	mov	ss, ax
+	push	dx
 
 	pushf
 	push	ax
 	push	bx
-	iret
+	retf
+
+process_farjump_return:
+	mov	sp, bp
+	sub	sp, #0x06
+	mov	cx, #0x100
+	mov	ds, cx
+	mov	ss, cx
 #endasm
 }

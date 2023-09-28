@@ -20,7 +20,6 @@ typedef struct __pcb_t
 } pcb_t;
 
 void process_init(void);
-bool process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, int* ret);
-void process_return(int cs, int flags, int return_value);
+int process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, bool* success);
 
 #endif

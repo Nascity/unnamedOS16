@@ -4,10 +4,10 @@ CC	:= bcc
 LD	:= ld86
 
 OUTDIR	:= ../bin
-OBJS	:= main.o	\
+OBJS	:= uosapi_main.o main.o	\
 	uosapi_file.o uosapi_io.o uosapi_mem.o uosapi_proc.o
 
-CCFLAGS	:= -ansi -0c
+CCFLAGS	:= -ansi -0cV -Ms
 LDFLAGS	:= -M -d
 
 
@@ -23,6 +23,8 @@ uosapi_file.o:
 	$(CC) $(CCFLAGS) -o uosapi_file.o ../uosapi/uosapi_file.c
 uosapi_io.o:
 	$(CC) $(CCFLAGS) -o uosapi_io.o ../uosapi/uosapi_io.c
+uosapi_main.o:
+	$(CC) $(CCFLAGS) -o uosapi_main.o ../uosapi/uosapi_main.c
 uosapi_mem.o:
 	$(CC) $(CCFLAGS) -o uosapi_mem.o ../uosapi/uosapi_mem.c
 uosapi_proc.o:

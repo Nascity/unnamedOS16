@@ -1,6 +1,7 @@
 #include "inc/uosapi.h"
 
 /* ---------- internal functions ---------- */
+static
 VOID
 _printstring(
 	STRING	strString
@@ -16,6 +17,7 @@ _printstring(
 	}
 }
 
+static
 INT
 _format(
 	CHAR	chFormatChar,
@@ -123,6 +125,11 @@ PrintNumber(
 	INT	iNumber
 	)
 {
+	if (iNumber < 0)
+	{
+		PrintChar('-');
+		iNumber *= -1;
+	}
 	if (iNumber == 0xFFFF)
 	{
 		PrintFormat("-32768");

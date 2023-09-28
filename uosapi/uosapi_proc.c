@@ -9,10 +9,10 @@ CreateProcess(
 	STRING	strName,
 	STRING	strExt,
 	STRING	strArgs,
-	PINT	piReturn
+	PBOOL	pbIsSuccessful
 	)
 {
-	INT	ret = piReturn;
+	INT	is = pbIsSuccessful;
 	INT	args = strArgs;
 	INT	ext = strExt;
 	INT	filename = strName;

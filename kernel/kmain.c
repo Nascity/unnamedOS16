@@ -7,11 +7,13 @@ void init(void);
 void main(void)
 {
 	int	i;
+	int	ret;
 
 	printline("Kernel successfully loaded.");
 	init();
 
-	CreateProcess("testfile", "sys", "", &i);
+	ret = CreateProcess("shell", "sys", "arg test", &i);
+	printline("ret: %d, suc: %d", ret, i);
 
 	halt();
 }

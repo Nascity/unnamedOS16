@@ -5,13 +5,21 @@ MAINRELFLPMKR	:= ../../..
 
 FLPMKRARGS	:= $(MAINRELFLPMKR)/$(OUTDIR)/bootloader.bin	\
 		$(MAINRELFLPMKR)/$(OUTDIR)/kernel.bin solstice	\
-		$(MAINRELFLPMKR)/$(OUTDIR)/test.bin testfile
+		$(MAINRELFLPMKR)/$(OUTDIR)/test.bin testfile	\
+		$(MAINRELFLPMKR)/$(OUTDIR)/shell.bin shell
 DIRS		:= kernel shell
 
 QEMUFLAGS	:= -drive format=raw,file=$(OUTDIR)/floppy.img,if=floppy,readonly=off
 QEMUDEBUGFLAGS	:= $(QEMUFLAGS) -S -gdb tcp::8000
 
 all: floppy
+
+clean:
+	rm $(OUTDIR)/floppy.img
+	for dir in $(DIRS); do	\
+	cd $$dir && make clean;	\
+	cd ..;			\
+	done
 
 dirs:
 	for dir in $(DIRS); do	\

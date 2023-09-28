@@ -102,12 +102,17 @@ void printhex(unsigned int num, bool uppercase)
 
 void printnumber(int num)
 {
+	if(num < 0)
+	{
+		printchar('-');
+		num *= -1;
+	}
 	if(num == 0xFFFF)
 	{
 		printstring("-32768");
 		return;
 	}
-	if(num > 10)
+	if(num >= 10)
 		printnumber(num / 10);
 	printchar(num % 10 + '0');
 }
@@ -492,7 +497,7 @@ bool create_directory(int working_dir, word file_cluster, word parent)
 	
 	de.name[0] = '.';
 	de.attrib = DIR_ENTRY_ATTRIB_USED | DIR_ENTRY_ATTRIB_SUBDIR;
-	de.filesize = 0;
+	de.filesize = 512;
 	de.start_cluster = file_cluster;
 	set_dir_entry(dir_kobj, 0, &de);
 

@@ -9,7 +9,7 @@ OBJS	:= kmain.o					\
 	io.o memory.o process.o syscall.o time.o	\
 	uosapi_file.o uosapi_io.o uosapi_mem.o uosapi_proc.o
 
-CCFLAGS	:= -ansi -0c
+CCFLAGS	:= -ansi -0cV
 LDFLAGS	:= -M -d
 NSFLAGS	:= -fbin
 

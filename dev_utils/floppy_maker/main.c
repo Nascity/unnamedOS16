@@ -31,8 +31,8 @@ int main(int argc, char* argv[])
 	fp_floppy = fopen(FLOPPY_LOCATION, "w");
 	if(!fp_floppy) error_handler("cannot open floppy.img.");
 
-	write_to_root(".", 0, 3, dir_entry_index++);
-	write_to_root("..", 0, 3, dir_entry_index++);
+	write_to_root(".", 512, 3, dir_entry_index++);
+	write_to_root("..", 512, 3, dir_entry_index++);
 
 	for(i = 1; i < argc; i++)
 	{
