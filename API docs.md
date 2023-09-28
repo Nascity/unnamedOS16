@@ -49,4 +49,4 @@ UOS API의 문서입니다.
 ## 프로세스
 | 반환형 | 함수 | 설명 |
 | - | - | - |
-| BOOL | CreateProcess(STRING strName, STRING strExt, STRING strArgs, PINT piReturn) | 파일 시스템에서 이름이 `strName`이고 확장자명이 `strExt`인 파일을 메모리에 적재해 실행합니다. 이때, `strArgs`를 전달인자로 전달합니다. 프로세스가 종료한 후 리턴하는 값은 `piReturn`을 통해 전달됩니다.<br/>* 주의사항: 실행 가능하지 않은 파일을 실행함으로써 발생하는 문제의 책임은 사용자에 있습니다. |
+| INT | CreateProcess(STRING strName, STRING strExt, STRING strArgs, PBOOL pbIsSuccessful) | 파일 시스템에서 이름이 `strName`이고 확장자명이 `strExt`인 파일을 메모리에 적재해 실행합니다. 이때, `strArgs`를 전달인자로 전달합니다. 프로세스가 종료한 후 리턴하는 값이 리턴되며, 함수의 성공 여부는 `pbIsSuccessful`을 통해 전달됩니다.<br/>* 주의사항: 실행 가능하지 않은 파일을 실행함으로써 발생하는 문제의 책임은 사용자에 있습니다. |
