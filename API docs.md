@@ -3,12 +3,15 @@ UOS API의 문서입니다.
 ## 자료형
 | 자료형 | typedef | 크기 (bytes) | 설명 |
 | - | - | - | - |
+| ARGS | typedef struct | 4 | Entrypoint의 전달인자 배열 구조체<br/>* `uiArgCount`: 전달인자의 수<br/>* `kmArgs`: `ARGS_ENTRY` 배열이 저장되어 있는 메모리의 커널 오브젝트
+| ARGS_ENTRY | typedef struct | 4 | Entrypoint의 전달인자 구조체<br/>* `uiArgLength`: 전달인자의 길이(null문자 포함)<br/>* `kmArg`: 전달인자가 저장되어 있는 메모리의 커널 오브젝트
 | BOOL | char | 1 | boolean |
 | CHAR | char | 1 | char |
 | BYTE | unsigned char | 1 | byte |
 | INT | int | 2 | int |
 | KOBJIO | int | 2 | I/O 커널 오브젝트 |
 | KOBJMEM | int | 2 | 메모리 커널 오브젝트 |
+| PBOOL | char* | 2 | BOOL형 포인터 |
 | PINT | int* | 2 | INT형 포인터 |
 | PTR | void* | 2 | 포인터 |
 | PWORD | unsigned short* | 2 | WORD형 포인터
@@ -17,6 +20,11 @@ UOS API의 문서입니다.
 | UINT | unsigned int | 2 | 부호 없는 INT형 |
 | WORD | unsigned short | 2 | word |
 | VOID | void | 0 | void |
+
+## 프로그램의 Entrypoint
+| 반환형 | 함수 | 설명 |
+| - | - | - |
+| INT | UosMain(PTR pCmdLine, ARGS args) | 프로그램의 entrypoint입니다. 전달된 문자열의 주소가 `pCmdLine`으로 전달되고, 띄어쓰기를 기준으로 분리된 전달인자 배열은 `args`를 통해 전달됩니다. |
 
 ## 화면 출력
 | 반환형 | 함수 | 설명 |
