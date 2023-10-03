@@ -1,50 +1,73 @@
 #include "inc/uosapi.h"
 
 /* ---------- Memory API ---------- */
-KOBJMEM
+PTR
 AllocHeapMem(
 	INT	iCount
 	)
 {
-	INT count = iCount;
-	asm("int 0x22");
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	bx, word ptr [bp + 4]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	push	bx
+
+	int	0x22
+
+	add	sp, #0x02
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
 BOOL
 FreeHeapMem(
-	KOBJMEM	koMem
+	PTR	pAddr
 	)
 {
-	KOBJMEM km = koMem;
-	asm("int 0x23");
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	bx, word ptr [bp + 4]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	push	bx
+
+	int	0x23
+
+	add	sp, #0x02
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
-BOOL
-WriteHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
+VOID
+Memcpy(
+	PTR	pTarget,
+	PTR	pSource,
 	INT	iCount
-	)
+      )
 {
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	km = koMem;
-	asm("int 0x24");
-}
+	INT	i;
 
-BOOL
-ReadHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
-	INT	iCount
-	)
-{
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	km = koMem;
-	asm("int 0x25");
+	for (i = 0; i < iCount; i++)
+		pTarget[i] = pSource[i];
 }

@@ -12,6 +12,8 @@ _printstring(
 	i = 0;
 	while (strString[i])
 	{
+		if (strString[i] == '\n')
+			PrintChar('\r');
 		PrintChar(strString[i]);
 		i++;
 	}
@@ -94,6 +96,8 @@ PrintFormat(
 	{
 		if (strFormat[i] != '%')
 		{
+			if (strFormat[i] == '\n')
+				PrintChar('\r');
 			PrintChar(strFormat[i++]);
 			continue;
 		}
@@ -105,19 +109,19 @@ PrintFormat(
 
 VOID
 PrintHex(
-	UINT	iNumber,
+	UINT	uiNumber,
 	BOOL	bCapitalize,
 	BOOL	bPrefix
 	)
 {
 	if (bPrefix)
 		PrintFormat("0x");
-	if (iNumber >= 16)
-		PrintHex(iNumber / 16, bCapitalize, FALSE);
+	if (uiNumber >= 16)
+		PrintHex(uiNumber / 16, bCapitalize, FALSE);
 	if (bCapitalize)
-		PrintChar("0123456789ABCDEF"[iNumber  % 16]);
+		PrintChar("0123456789ABCDEF"[uiNumber  % 16]);
 	else
-		PrintChar("0123456789abcdef"[iNumber % 16]);
+		PrintChar("0123456789abcdef"[uiNumber % 16]);
 }
 
 VOID
@@ -135,7 +139,7 @@ PrintNumber(
 		PrintFormat("-32768");
 		return;
 	}
-	if (iNumber > 10)
+	if (iNumber >= 10)
 		PrintNumber(iNumber / 10);
 	PrintChar(iNumber % 10 + '0');
 }

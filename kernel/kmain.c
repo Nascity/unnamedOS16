@@ -1,19 +1,18 @@
 #include "inc/inc.h"
-#include "../uosapi/inc/uosapi.h"
 
 void init(void);
-
+int execute_shell(int* suc);
 
 void main(void)
 {
-	int	i;
 	int	ret;
+	int	suc;
 
 	printline("Kernel successfully loaded.");
 	init();
 
-	ret = CreateProcess("shell", "sys", "arg test", &i);
-	printline("ret: %d, suc: %d", ret, i);
+	ret = execute_shell(&suc);
+	printline("ret: %d, suc: %d", ret, suc);
 
 	halt();
 }
@@ -28,6 +27,17 @@ void init(void)
 		halt();
 	}
 	process_init();
+}
+
+
+int execute_shell(int* suc)
+{
+	int	is = suc;
+	int	args = "uOS16 solstice v1.0.0";
+	int	ext = "sys";
+	int	filename = "shell";
+	int	workingdir = 1;
+	asm("int 0x20");
 }
 
 

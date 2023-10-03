@@ -166,12 +166,23 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, i
 {
 	int ret;
 	int start_cluster;
+	int i;
+	char fname[FILE_MAX_NAME];
+	char fext[FILE_MAX_EXT];
 
+	for (i = 0; i < FILE_MAX_NAME && name[i]; i++)
+		fname[i] = name[i];
+	for (i = 0; i < FILE_MAX_EXT && ext[i]; i++)
+		fext[i] = ext[i];
+	syscall_begin();
+	for (i = 0; i < FILE_MAX_NAME; i++)
+		printline("%x ", fname[i]);
 	start_cluster = find_file_cluster(name, ext, working_dir, NULL);
 	ret = open_file(cs, working_dir, start_cluster, open_mode);
 	set_file_time(working_dir, start_cluster, NULL, NULL);
 
 	asm("mov	ax, word ptr [bp - 6]");
+	syscall_end();
 	syscall_return();
 }
 

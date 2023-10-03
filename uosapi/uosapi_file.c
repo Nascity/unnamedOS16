@@ -10,11 +10,35 @@ OpenFile(
 	WORD	wOpenMode
 	)
 {
-	INT	openmode = wOpenMode;
-	INT	ext = strExt;
-	INT	name = strName;
 	INT	wd = koIoWorkingDir;
-	asm("int 0x26");
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	bx, word ptr [bp + 4]
+	mov	cx, word ptr [bp + 6]
+	mov	dx, word ptr [bp + 8]
+	mov	di, word ptr [bp - 6]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	push	di
+	push	dx
+	push	cx
+	push	bx
+
+	int	0x26
+
+	add	sp, #0x08
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
 BOOL

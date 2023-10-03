@@ -5,9 +5,8 @@ LD 	:= ld86
 NS 	:= nasm
 
 OUTDIR	:= ../bin
-OBJS	:= kmain.o					\
-	io.o memory.o process.o syscall.o time.o	\
-	uosapi_file.o uosapi_io.o uosapi_mem.o uosapi_proc.o
+OBJS	:= kmain.o	\
+	io.o memory.o process.o syscall.o time.o
 
 CCFLAGS	:= -ansi -0cV
 LDFLAGS	:= -M -d
@@ -32,14 +31,6 @@ syscall.o:
 	$(CC) $(CCFLAGS) -o syscall.o syscall.c
 time.o:
 	$(CC) $(CCFLAGS) -o time.o time.c
-uosapi_file.o:
-	$(CC) $(CCFLAGS) -o uosapi_file.o ../uosapi/uosapi_file.c
-uosapi_io.o:
-	$(CC) $(CCFLAGS) -o uosapi_io.o ../uosapi/uosapi_io.c
-uosapi_mem.o:
-	$(CC) $(CCFLAGS) -o uosapi_mem.o ../uosapi/uosapi_mem.c
-uosapi_proc.o:
-	$(CC) $(CCFLAGS) -o uosapi_proc.o ../uosapi/uosapi_proc.c
 
 
 bootloader:

@@ -18,8 +18,8 @@ int io_open_wrapper(int working_dir, char* name, char* ext);
 bool io_close_wrapper(int koio);
 
 bool load_process(int file_cluster, int segment, int count);
-void init_pcb_t(int process_seg_count, char* filename);
-void process_args_copy(int sp, char* args);
+void init_pcb_t(int process_seg_count, char* filename, int prealloc_size);
+int process_args_copy(int sp, char* args);
 void process_setup_stack(int ip, int cmdline, int stack_top);
 int process_farjump(int cs, int ip, int bp);
 
@@ -59,7 +59,7 @@ int process_start(int cs, int flags, int working_dir, char* filename, char* ext,
 	int process_base_file;
 	int process_base_file_size;
 	int process_seg_count;
-	int process_stack_offset;
+	int process_seg;
 
 	*success = 1;
 	process_base_file = io_open_wrapper(working_dir, filename, ext);
@@ -73,6 +73,8 @@ int process_start(int cs, int flags, int working_dir, char* filename, char* ext,
 	process_seg_count = process_base_file_size % 512 == 0 ?
 				process_base_file_size / 512
 				: process_base_file_size / 512 + 1;
+	if(process_seg_count < 2)
+		process_seg_count = 2;
 	if(!new_process_possible(process_seg_count)
 		|| !load_process(get_file_cluster(process_base_file),
 			pcb_stack.top_seg,
@@ -84,14 +86,12 @@ int process_start(int cs, int flags, int working_dir, char* filename, char* ext,
 		syscall_return();
 	}
 
-	init_pcb_t(process_seg_count, filename);
+	init_pcb_t(process_seg_count, filename, process_args_copy(ARG_LOAD_SP, args));
 
-	process_stack_offset = -(pcb_stack.top_seg - process_seg_count * 512 - USER_SPACE_START_SEGMENT);
-	process_args_copy(-(pcb_stack.top_seg - USER_SPACE_START_SEGMENT), args);
-	process_setup_stack(((char*)process_farjump) + 0x23, -(pcb_stack.top_seg - USER_SPACE_START_SEGMENT), process_stack_offset);
-	process_farjump(USER_SPACE_START_SEGMENT,
-			-process_stack_offset,
-			process_stack_offset - 6);
+	process_setup_stack(((char*)process_farjump) + 0x23, ARG_LOAD_SP, pcb_stack.blocks[pcb_stack.count - 1].start_seg);
+	process_farjump(pcb_stack.blocks[pcb_stack.count - 1].start_seg,
+			0,
+			-6);
 	syscall_return();
 }
 
@@ -117,6 +117,17 @@ bool io_close_wrapper(int koio)
 
 // -----------------------------------------------------------------------
 // Extras
+int get_MAT_index(int cs)
+{
+	int i;
+
+	for (i = 0; i < pcb_stack.count; i++)
+		if (pcb_stack.blocks[i].start_seg == cs)
+			return i;
+	return -1;
+}
+
+
 bool load_process(int file_cluster, int segment, int count)
 {
 	int es = segment;
@@ -152,7 +163,7 @@ load_process_end:
 }
 
 
-void init_pcb_t(int process_seg_count, char* filename)
+void init_pcb_t(int process_seg_count, char* filename, int prealloc_size)
 {
 	pcb_t* ptarget = &(pcb_stack.blocks[pcb_stack.count]);
 	int i;
@@ -162,12 +173,13 @@ void init_pcb_t(int process_seg_count, char* filename)
 	ptarget->seg_count = process_seg_count;
 	for (i = 0; i < FILE_MAX_NAME && filename[i]; i++)
 		ptarget->name[i] = filename[i];
-	MAT_init(&(ptarget->mem_alloc_table));
+	MAT_init(&(ptarget->mem_alloc_table), prealloc_size);
+	(pcb_stack.count)++;
 	pcb_stack.top_seg += process_seg_count * 512;
 }
 
 
-void process_args_copy(int sp, char* args)
+int process_args_copy(int sp, char* args)
 {
 	int i;
 	int ch;	// bp - 8
@@ -192,20 +204,21 @@ void process_args_copy(int sp, char* args)
 		mov	ds, ax
 #endasm
 	}
+
+	return i;
 }
 
 
-void process_setup_stack(int ip, int cmdline, int stack_top)
+void process_setup_stack(int ip, int cmdline, int cs)
 {
 	int unused;
 #asm
 	mov	di, word ptr [bp + 4]	; di = ip
 	mov	bx, word ptr [bp + 6]	; bx = cmdline
-	mov	si, word ptr [bp + 8]	; si = stack_top
-
-	mov	ax, #0x400
+	mov	ax, word ptr [bp + 8]	; ax = cs
 	mov	ds, ax
 
+	xor	si, si
 	sub	si, #0x02
 	mov	word ptr [si], bx
 	sub	si, #0x02

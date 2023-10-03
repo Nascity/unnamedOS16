@@ -8,8 +8,8 @@ void* handlers[] =
 	NULL,
 	memory_alloc,
 	memory_free,
-	memory_write,
-	memory_read,
+	NULL,
+	NULL,
 	io_open,
 	io_close,
 	io_write,
@@ -28,9 +28,25 @@ void syscall_init(void)
 
 	for(i = SYSCALL_BEGIN; i <= SYSCALL_END; i++)
 		replace_handler(i, handlers[i - SYSCALL_BEGIN]);
-
-	// DEBUG
 	printline("Syscall %x to %x initialized.", SYSCALL_BEGIN, SYSCALL_END);
+}
+
+
+void syscall_begin(void)
+{
+#asm
+	mov	di, #0x100
+	mov	ds, di
+#endasm
+}
+
+
+void syscall_end(void)
+{
+#asm
+	mov	di, word ptr [bp + 4]
+	mov	ds, di
+#endasm
 }
 
 

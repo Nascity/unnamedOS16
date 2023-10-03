@@ -7,7 +7,9 @@
 #define KERNEL_SPACE_START_SEGMENT	0x100
 #define KERNEL_SPACE_END_SEGMENT	0x400
 #define USER_SPACE_START_SEGMENT	0x400
-#define USER_SPACE_END_SEGMENT		0x2000
+#define USER_SPACE_END_SEGMENT		0xC00
+
+#define ARG_LOAD_SP	0xFE00
 
 typedef struct __pcb_t
 {
@@ -21,5 +23,6 @@ typedef struct __pcb_t
 
 void process_init(void);
 int process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, bool* success);
+int get_MAT_index(int cs);
 
 #endif

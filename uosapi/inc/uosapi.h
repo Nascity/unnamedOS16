@@ -2,6 +2,8 @@
 #define __UOSAPI_H__
 
 /* ---------- #defines ---------- */
+#define NULL	(void*)0
+
 #define	TRUE	1
 #define FALSE	0
 
@@ -14,7 +16,6 @@
 #define FILE_CREATE_SUBDIR	0x08
 
 #define INVALID_KOBJIO		((KOBJIO)0xFFFF)
-#define INVALID_KOBJMEM		((KOBJMEM)-1)
 
 /* ---------- typedefs ---------- */
 // Basic type definition
@@ -24,7 +25,8 @@ typedef unsigned char	BYTE;
 typedef int		INT;
 typedef char*		PBOOL;
 typedef int*		PINT;
-typedef void*		PTR;
+typedef char*		PTR;
+typedef unsigned int*	PUINT;
 typedef unsigned short*	PWORD;
 typedef char*		STRING;
 typedef unsigned int	UINT;
@@ -33,20 +35,19 @@ typedef unsigned short	WORD;
 
 // Kernel object type definition
 typedef int KOBJIO;
-typedef int KOBJMEM;
 
 // Structs
-typedef struct __ARGS
-{
-	UINT	uiArgCount;
-	KOBJMEM	kmArgs;
-} ARGS, *PARGS;
-
 typedef struct __ARGS_ENTRY
 {
 	UINT	uiArgLength;
-	KOBJMEM	kmArg;
+	STRING	strArg;
 } ARGS_ENTRY, *PARGS_ENTRY;
+
+typedef struct __ARGS
+{
+	UINT		uiArgCount;
+	PARGS_ENTRY	pArgs;
+} ARGS, *PARGS;
 
 typedef struct __TIME_ENTRY
 {
@@ -87,28 +88,20 @@ PrintNumber(
 	);
 
 /* ---------- Memory API ---------- */
-KOBJMEM
+PTR
 AllocHeapMem(
 	INT	iCount
 	);
 BOOL
 FreeHeapMem(
-	KOBJMEM	koMem
+	PTR	pAddr
 	);
-BOOL
-WriteHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
+VOID
+Memcpy(
+	PTR	pTarget,
+	PTR	pSource,
 	INT	iCount
-	);
-BOOL
-ReadHeapMem(
-	KOBJMEM	koMem,
-	PTR	pBuffer,
-	INT	iOffset,
-	INT	iCount
-	);
+      );
 
 /* ---------- File API ---------- */
 KOBJIO
