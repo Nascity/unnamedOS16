@@ -3,14 +3,13 @@ UOS API의 문서입니다.
 ## 자료형
 | 자료형 | typedef | 크기 (bytes) | 설명 |
 | - | - | - | - |
-| ARGS | typedef struct | 4 | Entrypoint의 전달인자 배열 구조체<br/>* `uiArgCount`: 전달인자의 수<br/>* `kmArgs`: `ARGS_ENTRY` 배열이 저장되어 있는 메모리의 커널 오브젝트
-| ARGS_ENTRY | typedef struct | 4 | Entrypoint의 전달인자 구조체<br/>* `uiArgLength`: 전달인자의 길이(null문자 포함)<br/>* `kmArg`: 전달인자가 저장되어 있는 메모리의 커널 오브젝트
+| ARGS | typedef struct | 4 | Entrypoint의 전달인자 배열 구조체<br/>* `uiArgCount`: 전달인자의 수<br/>* `pArgs`: `ARGS_ENTRY` 배열의 주소
+| ARGS_ENTRY | typedef struct | 4 | Entrypoint의 전달인자 구조체<br/>* `uiArgLength`: 전달인자의 길이(null문자 포함)<br/>* `strArg`: 전달인자의 주소
 | BOOL | char | 1 | boolean |
 | CHAR | char | 1 | char |
 | BYTE | unsigned char | 1 | byte |
 | INT | int | 2 | int |
 | KOBJIO | int | 2 | I/O 커널 오브젝트 |
-| KOBJMEM | int | 2 | 메모리 커널 오브젝트 |
 | PBOOL | char* | 2 | BOOL형 포인터 |
 | PINT | int* | 2 | INT형 포인터 |
 | PTR | void* | 2 | 포인터 |
@@ -37,10 +36,9 @@ UOS API의 문서입니다.
 ## 메모리
 | 반환형 | 함수 | 설명 |
 | - | - | - |
-| KOBJMEM | AllocHeapMem(INT iCount) | `iCount` 바이트의 메모리를 힙에 할당합니다. 성공시 메모리 커널 오브젝트를, 실패시 `INVALID_KOBJMEM`을 반환합니다. |
-| BOOL | FreeHeapMem(KOBJMEM koMem) | 할당된 힙 메모리를 반환합니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
-| BOOL | WriteHeapMem(KOBJMEM koMem, PTR pBuffer, INT iOffset, INT iCount) | `pBuffer`에 저장된 내용을 힙 메모리의 `iOffset` 바이트의 오프셋에 `iCount` 바이트만큼 씁니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
-| BOOL | ReadHeapMem(KOBJMEM koMem, PTR pBuffer, INT iOffset, INT iCount) | 힙 메모리의 `iOffset` 바이티의 오프셋에 저장된 내용을 `iCount` 바이트만큼 읽어 `pBuffer`에 씁니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
+| PTR | AllocHeapMem(INT iCount) | `iCount` 바이트의 메모리를 힙에 할당합니다. 성공시 힙 메모리의 주소를, 실패시 `NULL`을 반환합니다. |
+| BOOL | FreeHeapMem(PTR pAddr) | 주소가 `pAddr`인 힙 메모리를 반환합니다. 성공시 `TRUE`, 실패시 `FALSE`를 반환합니다. |
+| VOID | Memcpy(PTR pTarget, PTR pSource, INT iCount) | `pTarget`으로 `pSource`의 데이터를 `iCount` 바이트만큼 복사합니다. |
 
 ## 파일
 | 반환형 | 함수 | 설명 |
