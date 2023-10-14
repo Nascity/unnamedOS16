@@ -23,7 +23,8 @@ main(
 	args = _mkargs(pCmdLine);
 	iReturn = UosMain(pCmdLine, args);
 #asm
-	mov	ax, word ptr [bp - 10]
+test__:
+	mov	ax, word ptr [bp - 12]
 	mov	sp, bp
 	add	sp, #0x04
 	pop	bp

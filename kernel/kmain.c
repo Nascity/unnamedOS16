@@ -8,12 +8,14 @@ void main(void)
 	int	ret;
 	int	suc;
 
-	printline("Kernel successfully loaded.");
+	printline(KERNEL_LOADED_MSG);
 	init();
 
 	ret = execute_shell(&suc);
-	printline("ret: %d, suc: %d", ret, suc);
-
+	if (!suc)
+		printline(SHELL_FAIL_MSG);
+	else
+		printline(SHELL_SUCCESS_MSG, ret);
 	halt();
 }
 
@@ -23,7 +25,7 @@ void init(void)
 	syscall_init();
 	if(!io_init())
 	{
-		printline("io_init failed.");
+		printline(IO_INIT_FAIL_MSG);
 		halt();
 	}
 	process_init();
@@ -33,9 +35,9 @@ void init(void)
 int execute_shell(int* suc)
 {
 	int	is = suc;
-	int	args = "uOS16 solstice v1.0.0";
-	int	ext = "sys";
-	int	filename = "shell";
+	int	args = SHELL_ARG;
+	int	ext = SHELL_EXT;
+	int	filename = SHELL_NAME;
 	int	workingdir = 1;
 	asm("int 0x20");
 }
@@ -43,6 +45,6 @@ int execute_shell(int* suc)
 
 void halt(void)
 {
-	printstring("halt");
+	printstring(SYSTEM_HALT_MSG);
 	while(true);
 }

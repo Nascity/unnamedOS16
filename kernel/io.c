@@ -170,14 +170,10 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, i
 	char fname[FILE_MAX_NAME];
 	char fext[FILE_MAX_EXT];
 
-	for (i = 0; i < FILE_MAX_NAME && name[i]; i++)
-		fname[i] = name[i];
-	for (i = 0; i < FILE_MAX_EXT && ext[i]; i++)
-		fext[i] = ext[i];
 	syscall_begin();
-	for (i = 0; i < FILE_MAX_NAME; i++)
-		printline("%x ", fname[i]);
-	start_cluster = find_file_cluster(name, ext, working_dir, NULL);
+	interprocess_read(cs, fname, name, FILE_MAX_NAME);
+	interprocess_read(cs, fext, ext, FILE_MAX_EXT);
+	start_cluster = find_file_cluster(fname, fext, working_dir, NULL);
 	ret = open_file(cs, working_dir, start_cluster, open_mode);
 	set_file_time(working_dir, start_cluster, NULL, NULL);
 
@@ -189,20 +185,37 @@ kobj_io io_open(int cs, int flags, kobj_io working_dir, char* name, char* ext, i
 
 bool io_close(int cs, int flags, kobj_io koio)
 {
-	int ret = unregister_FIT(koio);
-
+	int ret;
+	
+	syscall_begin();
+	ret = unregister_FIT(koio);
 	asm("mov	ax, word ptr [bp - 6]");
+	syscall_end();
 	syscall_return();
 }
 
 
-bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count)
+bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* _buffer, int offset, int count)
 {
 	int ret;
+	int i;
+	char buffer[IO_WR_BUFFER_SIZE];
 
-	ret = write_file(working_dir, koio, buffer, offset, count);
-
+	syscall_begin();
+	for (i = 0; i < (count % IO_WR_BUFFER_SIZE == 0
+		? count / IO_WR_BUFFER_SIZE
+		: count / IO_WR_BUFFER_SIZE + 1); i++)
+	{
+		interprocess_read(cs, buffer, ((char*)_buffer) + i * IO_WR_BUFFER_SIZE, IO_WR_BUFFER_SIZE);
+		ret = write_file(working_dir, koio, buffer, offset,
+			count - i * IO_WR_BUFFER_SIZE > IO_WR_BUFFER_SIZE
+			? IO_WR_BUFFER_SIZE
+			: count - i * IO_WR_BUFFER_SIZE);
+		if (!ret)
+			break;
+	}
 	asm("mov	ax, word ptr [bp - 6]");
+	syscall_end();
 	syscall_return();
 }
 
@@ -211,9 +224,10 @@ bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer,
 {
 	int ret;
 
+	syscall_begin();
 	ret = read_file(working_dir, koio, buffer, offset, count);
-
 	asm("mov	ax, word ptr [bp - 6]");
+	syscall_end();
 	syscall_return();
 }
 
@@ -222,24 +236,32 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 {
 	dir_entry de;
 	time_entry te;
-	word curret_max_cluster = INVALID_CLUSTER;
+	word curret_max_cluster;
 	word FAT_entry;
 	int i;
 	int de_index;
+	char fname[FILE_MAX_NAME];
+	char fext[FILE_MAX_EXT];
 
+	syscall_begin();
+	interprocess_read(cs, fname, name, FILE_MAX_NAME);
+	interprocess_read(cs, fext, ext, FILE_MAX_EXT);
+
+	curret_max_cluster = INVALID_CLUSTER;
 	if((de_index = can_create_file(working_dir)) == -1
-		|| find_file_cluster(name, ext, working_dir, NULL) != INVALID_CLUSTER)
+		|| find_file_cluster(fname, fext, working_dir, NULL) != INVALID_CLUSTER)
 	{
 		asm("mov	ax, #0x00");
+		syscall_end();
 		syscall_return();
 	}
 
 	for (i = 0; i < sizeof(de); i++)
 		((byte*)&de)[i] = 0;
-	for (i = 0; i < FILE_MAX_NAME && name[i]; i++)
-		de.name[i] = name[i];
-	for (i = 0; i < FILE_MAX_EXT && ext[i]; i++)
-		de.ext[i] = ext[i];
+	for (i = 0; i < FILE_MAX_NAME && fname[i]; i++)
+		de.name[i] = fname[i];
+	for (i = 0; i < FILE_MAX_EXT && fext[i]; i++)
+		de.ext[i] = fext[i];
 	de.attrib = attrib | DIR_ENTRY_ATTRIB_USED;
 	de.filesize = 0;
 	
@@ -267,9 +289,11 @@ bool create_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	if(attrib & DIR_ENTRY_ATTRIB_SUBDIR)
 	{
 		create_directory(working_dir, de.start_cluster, working_dir);
+		syscall_end();
 		syscall_return();
 	}
 	asm("mov	ax, #0x01");
+	syscall_end();
 	syscall_return();
 }
 
@@ -281,10 +305,17 @@ bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	int subdir;
 	word FAT_entry;
 	word current;
+	char fname[FILE_MAX_NAME];
+	char fext[FILE_MAX_EXT];
 
-	if((current = find_file_cluster(name, ext, working_dir, &de_index)) == INVALID_CLUSTER)
+	syscall_begin();
+	interprocess_read(cs, fname, name, FILE_MAX_NAME);
+	interprocess_read(cs, fext, ext, FILE_MAX_EXT);
+
+	if((current = find_file_cluster(fname, fext, working_dir, &de_index)) == INVALID_CLUSTER)
 	{
 		asm("mov	ax, #0x00");
+		syscall_end();
 		syscall_return();
 	}
 	get_dir_entry(working_dir, de_index, &de);
@@ -305,6 +336,7 @@ bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	de.attrib = !DIR_ENTRY_ATTRIB_USED;
 	set_dir_entry(working_dir, de_index, &de);
 	asm("mov	ax, #0x01");
+	syscall_end();
 	syscall_return();
 }
 

@@ -54,20 +54,30 @@ void pcb_stack_init(void)
 
 // -----------------------------------------------------------------------
 // Syscalls
-int process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, bool* success)
+int process_start(int cs, int flags, int working_dir, char* _filename, char* _ext, char* args, bool* _success)
 {
 	int process_base_file;
 	int process_base_file_size;
 	int process_seg_count;
 	int process_seg;
+	int success;
+	char filename[FILE_MAX_NAME];
+	char ext[FILE_MAX_EXT];
 
-	*success = 1;
+	syscall_begin();
+	interprocess_read(cs, filename, _filename, FILE_MAX_NAME);
+	interprocess_read(cs, ext, _ext, FILE_MAX_EXT);
+
+	success = 1;
+	interprocess_write(cs, _success, &success, sizeof(int));
 	process_base_file = io_open_wrapper(working_dir, filename, ext);
 	if(process_base_file == 0xFFFF
 		|| !get_file_size(working_dir, process_base_file, &process_base_file_size))
 	{
-		*success = 0;
+		success = 0;
+		interprocess_write(cs, _success, &success, sizeof(int));
 		asm("mov	ax, #0x00");
+		syscall_end();
 		syscall_return();
 	}
 	process_seg_count = process_base_file_size % 512 == 0 ?
@@ -81,8 +91,10 @@ int process_start(int cs, int flags, int working_dir, char* filename, char* ext,
 			process_seg_count)
 		|| !io_close_wrapper(process_base_file))
 	{
-		*success = 0;
+		success = 0;
+		interprocess_write(cs, _success, &success, sizeof(int));
 		asm("mov	ax, #0x00");
+		syscall_end();
 		syscall_return();
 	}
 
@@ -92,9 +104,57 @@ int process_start(int cs, int flags, int working_dir, char* filename, char* ext,
 	process_farjump(pcb_stack.blocks[pcb_stack.count - 1].start_seg,
 			0,
 			-6);
+	syscall_end();
 	syscall_return();
 }
 
+
+// -----------------------------------------------------------------------
+// Interactions
+void interprocess_read(int segment, char* dest, char* src, int size)
+{
+	int data = 0;
+	int i;
+
+	for (i = 0; i < size; i++, src++)
+	{
+#asm
+		mov	ax, word ptr [bp + 4]	; ax = segment
+		mov	bx, word ptr [bp + 8]	; bx = src
+
+		mov	ds, ax
+		mov	cl, byte ptr [bx]
+		mov	ax, #0x100
+		mov	ds, ax
+
+		mov	byte ptr [bp - 6], cl
+#endasm
+		dest[i] = data;
+	}
+}
+
+void interprocess_write(int segment, char* dest, char* src, int size)
+{
+	int data = 0;
+	int i;
+
+	for (i = 0; i < size; i++, dest++)
+	{
+		data = src[i];
+#asm
+		mov	ax, word ptr [bp + 4]	; ax = segment
+		mov	bx, word ptr [bp + 6]	; bx = dest
+		mov	cl, byte ptr [bp - 6]
+
+		mov	ds, ax
+		mov	ss, ax
+		mov	byte ptr [bx], cl
+		mov	ax, #0x100
+		mov	ds, ax
+		mov	ss, ax
+#endasm
+	}
+}
 
 // -----------------------------------------------------------------------
 // io.c wrappers

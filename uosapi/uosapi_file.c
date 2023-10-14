@@ -25,10 +25,10 @@ OpenFile(
 	mov	bp, sp
 
 	push	si
-	push	di
 	push	dx
 	push	cx
 	push	bx
+	push	di
 
 	int	0x26
 
@@ -74,12 +74,39 @@ WriteFile(
 	INT	iCount
 	)
 {
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	koio = koIoFile;
 	INT	wd = koIoWorkingDir;
-	asm("int 0x28");
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	ax, word ptr [bp + 10]
+	mov	es, ax
+	mov	bx, word ptr [bp + 4]
+	mov	cx, word ptr [bp + 6]
+	mov	dx, word ptr [bp + 8]
+	mov	di, word ptr [bp - 6]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	mov	ax, es
+	push	ax
+	push	dx
+	push	cx
+	push	bx
+	push	di
+
+	int	0x28
+
+	add	sp, #0x0A
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
 BOOL
@@ -90,12 +117,39 @@ ReadFile(
 	INT	iCount
 	)
 {
-	INT	count = iCount;
-	INT	offset = iOffset;
-	INT	buffer = pBuffer;
-	INT	koio = koIoFile;
 	INT	wd = koIoWorkingDir;
-	asm("int 0x29");
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	ax, word ptr [bp + 10]
+	mov	es, ax
+	mov	bx, word ptr [bp + 4]
+	mov	cx, word ptr [bp + 6]
+	mov	dx, word ptr [bp + 8]
+	mov	di, word ptr [bp - 6]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	mov	ax, es
+	push	ax
+	push	dx
+	push	cx
+	push	bx
+	push	di
+
+	int	0x29
+
+	add	sp, #0x0A
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
 BOOL
@@ -105,11 +159,35 @@ CreateFile(
 	BYTE	bAttrib
 	)
 {
-	INT	attrib = bAttrib;
-	INT	ext = strExt;
-	INT	name = strName;
-	INT	working_dir = koIoWorkingDir;
-	asm("int 0x2A");
+	INT	wd = koIoWorkingDir;
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	di, word ptr [bp - 6]
+	mov	bx, word ptr [bp + 4]
+	mov	cx, word ptr [bp + 6]
+	mov	dx, word ptr [bp + 8]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	push	dx
+	push	cx
+	push	bx
+	push	di
+
+	int	0x2A
+
+	add	sp, #0x08
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }
 
 BOOL
@@ -118,8 +196,31 @@ DeleteFile(
 	STRING	strExt
 	)
 {
-	INT	ext = strExt;
-	INT	name = strName;
-	INT	working_dir = koIoWorkingDir;
-	asm("int 0x2B");
+	INT	wd = koIoWorkingDir;
+	INT	unused;
+#asm
+	mov	si, sp
+	mov	di, word ptr [bp - 6]
+	mov	bx, word ptr [bp + 4]
+	mov	cx, word ptr [bp + 6]
+
+	mov	ax, #0x100
+	mov	ss, ax
+	mov	sp, #0xC000
+	mov	bp, sp
+
+	push	si
+	push	cx
+	push	bx
+	push	di
+
+	int	0x2B
+
+	add	sp, #0x06
+	pop	bp
+	mov	sp, bp
+
+	mov	bx, cs
+	mov	ss, bx
+#endasm
 }

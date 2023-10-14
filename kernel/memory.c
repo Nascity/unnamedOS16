@@ -82,12 +82,30 @@ void* memory_alloc(int cs, int flags, int count)
 
 bool memory_free(int cs, int flags, void* addr)
 {
+	int ret;
+	int i;
 	int target;
+	MAT_t* pmgr;
 
 	syscall_begin();
 
 	target = addr_to_chunk_index(addr);
+	i = target;
+	pmgr = &(pcb_stack.blocks[get_MAT_index(cs)].mem_alloc_table);
+	if (target != pmgr->chunk_state[target])
+		ret = 0;
+	else
+	{
+		while (i < HEAP_CHUNK_COUNT
+			&& pmgr->chunk_state[i] == target)
+		{
+			pmgr->chunk_state[i] = UNALLOCATED_SLICE;
+			i++;
+		}
+		ret = 1;
+	}
 
+	asm("mov	ax, word ptr [bp - 6]");
 	syscall_end();
 	syscall_return();
 }

@@ -23,6 +23,9 @@ typedef struct __pcb_t
 
 void process_init(void);
 int process_start(int cs, int flags, int working_dir, char* filename, char* ext, char* args, bool* success);
+
 int get_MAT_index(int cs);
+void interprocess_read(int segment, char* dest, char* src, int size);
+void interprocess_write(int segment, char* dest, char* src, int size);
 
 #endif
