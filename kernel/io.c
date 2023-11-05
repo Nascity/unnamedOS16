@@ -207,7 +207,7 @@ bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* _buffe
 		: count / IO_WR_BUFFER_SIZE + 1); i++)
 	{
 		interprocess_read(cs, buffer, ((char*)_buffer) + i * IO_WR_BUFFER_SIZE, IO_WR_BUFFER_SIZE);
-		ret = write_file(working_dir, koio, buffer, offset,
+		ret = write_file(working_dir, koio, buffer, i * IO_WR_BUFFER_SIZE + offset,
 			count - i * IO_WR_BUFFER_SIZE > IO_WR_BUFFER_SIZE
 			? IO_WR_BUFFER_SIZE
 			: count - i * IO_WR_BUFFER_SIZE);
@@ -220,12 +220,25 @@ bool io_write(int cs, int flags, kobj_io working_dir, kobj_io koio, void* _buffe
 }
 
 
-bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* buffer, int offset, int count)
+bool io_read(int cs, int flags, kobj_io working_dir, kobj_io koio, void* _buffer, int offset, int count)
 {
 	int ret;
+	int i;
+	char buffer[IO_WR_BUFFER_SIZE];
 
 	syscall_begin();
-	ret = read_file(working_dir, koio, buffer, offset, count);
+	for (i = 0; i < (count % IO_WR_BUFFER_SIZE == 0
+		? count / IO_WR_BUFFER_SIZE
+		: count / IO_WR_BUFFER_SIZE + 1); i++)
+	{
+		ret = read_file(working_dir, koio, buffer, i * IO_WR_BUFFER_SIZE + offset,
+			count - i * IO_WR_BUFFER_SIZE > IO_WR_BUFFER_SIZE
+			? IO_WR_BUFFER_SIZE
+			: count - i * IO_WR_BUFFER_SIZE);
+		if (!ret)
+			break;
+		interprocess_write(cs, ((char*)_buffer) + i * IO_WR_BUFFER_SIZE, buffer, IO_WR_BUFFER_SIZE);
+	}
 	asm("mov	ax, word ptr [bp - 6]");
 	syscall_end();
 	syscall_return();
@@ -322,6 +335,7 @@ bool delete_file(int cs, int flags, kobj_io working_dir, char name[FILE_MAX_NAME
 	if(de.attrib & DIR_ENTRY_ATTRIB_SUBDIR)
 	{
 		delete_directory(working_dir, de.start_cluster);
+		syscall_end();
 		syscall_return();
 	}
 	while ((FAT_entry =
@@ -490,7 +504,8 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 	if(offset + count > filesize)
 	{
 		count -= offset + count - filesize;
-		if(count <= 0) return false;
+		if(count <= 0)
+			return false;
 	}
 	if(offset / 512 == 0)
 	{
@@ -520,6 +535,7 @@ bool read_file(int working_directory, int FIT_index, void* buffer, int offset, i
 		j++;
 		offset++;
 	}
+	((byte*)buffer)[i] = 0;
 
 	return true;
 }

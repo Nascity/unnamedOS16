@@ -14,7 +14,7 @@
 #define KERNEL_LOADED_MSG	"Kernel successfully loaded."
 #define IO_INIT_FAIL_MSG	"io_init failed."
 #define SHELL_FAIL_MSG		"Shell failed to execute."
-#define SHELL_SUCCESS_MSG	"Shell exited with %d."
+#define SHELL_SUCCESS_MSG	"Shell exited with %d.", ret
 #define SYSTEM_HALT_MSG		"Halt."
 
 void halt(void);

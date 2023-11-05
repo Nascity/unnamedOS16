@@ -7,6 +7,53 @@
 #define	TRUE	1
 #define FALSE	0
 
+#define TEXTMODE_SCREEN_WIDTH	80
+#define TEXTMODE_SCREEN_HEIGHT	25
+
+#define FOREGROUND_COLOR_BLACK		0x00
+#define FOREGROUND_COLOR_BLUE		0x01
+#define FOREGROUND_COLOR_GREEN		0x02
+#define FOREGROUND_COLOR_CYAN		0x03
+#define FOREGROUND_COLOR_RED		0x04
+#define FOREGROUND_COLOR_MAGENTA	0x05
+#define FOREGROUND_COLOR_BROWN		0x06
+#define FOREGROUND_COLOR_LIGHT_GRAY	0x07
+
+#define FOREGROUND_COLOR_DARK_GRAY	0x08
+#define FOREGROUND_COLOR_LIGHT_BLUE	0x09
+#define FOREGROUND_COLOR_LIGHT_GREEN	0x0A
+#define FOREGROUND_COLOR_LIGHT_CYAN	0x0B
+#define FOREGROUND_COLOR_LIGHT_RED	0x0C
+#define FOREGROUND_COLOR_LIGHT_MAGENTA	0x0D
+#define FOREGROUND_COLOR_YELLOW		0x0E
+#define FOREGROUND_COLOR_WHITE		0x0F
+
+#define BACKGROUND_COLOR_BLACK		0x00
+#define BACKGROUND_COLOR_BLUE		0x10
+#define BACKGROUND_COLOR_GREEN		0x20
+#define BACKGROUND_COLOR_CYAN		0x30
+#define BACKGROUND_COLOR_RED		0x40
+#define BACKGROUND_COLOR_MAGENTA	0x50
+#define BACKGROUND_COLOR_BROWN		0x60
+#define BACKGROUND_COLOR_LIGHT_GRAY	0x70
+
+#define UP_ARROW_SCAN_CODE	0x48
+#define LEFT_ARROW_SCAN_CODE	0x4B
+#define RIGHT_ARROW_SCAN_CODE	0x4D
+#define DOWN_ARROW_SCAN_CODE	0x50
+#define BACKSPACE_SCAN_CODE	0x0E
+#define ENTER_SCAN_CODE		0x1C
+
+#define GET_ASCII_CODE(ch)	((ch) & 0xFF)
+#define GET_SCAN_CODE(ch)	(((ch) >> 8) & 0xFF)
+
+#define GETSTRING_BUFFER_COUNT_LIMIT	64
+
+#define TAB_SIZE		4
+
+#define FILE_MAX_NAME		8
+#define FILE_MAX_EXT		3
+
 #define FILE_OPEN_WRITE		0x01
 #define FILE_OPEN_READ		0x02
 
@@ -15,56 +62,21 @@
 #define FILE_CREATE_SYSTEM	0x04
 #define FILE_CREATE_SUBDIR	0x08
 
+#define DIR_ENTRY_ATTRIB_READONLY	0x01
+#define DIR_ENTRY_ATTRIB_HIDDEN		0x02
+#define DIR_ENTRY_ATTRIB_SYSTEM		0x04
+#define DIR_ENTRY_ATTRIB_SUBDIR		0x08
+#define DIR_ENTRY_ATTRIB_USED		0x80
+
 #define INVALID_KOBJIO		((KOBJIO)0xFFFF)
 
-/* ---------- typedefs ---------- */
-// Basic type definition
-typedef char		BOOL;
-typedef char		CHAR;
-typedef unsigned char	BYTE;
-typedef int		INT;
-typedef char*		PBOOL;
-typedef int*		PINT;
-typedef char*		PTR;
-typedef unsigned int*	PUINT;
-typedef unsigned short*	PWORD;
-typedef char*		STRING;
-typedef unsigned int	UINT;
-typedef unsigned short	WORD;
-#define VOID		void
-
-// Kernel object type definition
-typedef int KOBJIO;
-
-// Structs
-typedef struct __ARGS_ENTRY
-{
-	UINT	uiArgLength;
-	STRING	strArg;
-} ARGS_ENTRY, *PARGS_ENTRY;
-
-typedef struct __ARGS
-{
-	UINT		uiArgCount;
-	PARGS_ENTRY	pArgs;
-} ARGS, *PARGS;
-
-typedef struct __TIME_ENTRY
-{
-	BYTE	bYear;
-	BYTE	bMonth;
-	BYTE	bDay;
-	BYTE	bHour;
-	BYTE	bMinute;
-	BYTE	bSecond;
-} TIME_ENTRY, *PTIME_ENTRY;
+#include "uostypes.h"
 
 /* ---------- Entrypoint API ---------- */
 INT
 UosMain(
 	PTR	pCmdLine,
-	ARGS	args
-       );
+	);
 
 /* ---------- Screen IO API ---------- */
 VOID
@@ -72,9 +84,23 @@ PrintChar(
 	CHAR	chCharacter
 	);
 VOID
+PrintCharAttrib(
+	CHAR	chCharacter,
+	BYTE	bAttrib
+	);
+VOID
+Print(
+	STRING	strString
+     );
+VOID
 PrintFormat(
 	STRING	strFormat,
 	...
+	);
+VOID
+PrintAttrib(
+	STRING	strString,
+	BYTE	bAttrib
 	);
 VOID
 PrintHex(
@@ -85,6 +111,38 @@ PrintHex(
 VOID
 PrintNumber(
 	INT	iNumber
+	);
+UINT
+GetCursorPos(
+	VOID
+	);
+VOID
+SetCursorPos(
+	UINT	uiCursorPos
+	);
+VOID
+SetCursorPosEx(
+	BYTE	bColumn,
+	BYTE	bRow
+	);
+VOID
+CursorStep(
+	BOOL	bForward
+	);
+
+/* ---------- Keyboard API ---------- */
+CHAR
+GetChar(
+	VOID
+       );
+BOOL
+GetString(
+	STRING	strBuffer,
+	UINT	uiBufferCount
+	);
+UINT
+GetCharWithScanCode(
+	VOID
 	);
 
 /* ---------- Memory API ---------- */
@@ -97,11 +155,32 @@ FreeHeapMem(
 	PTR	pAddr
 	);
 VOID
+Memset(
+	PTR	pTarget,
+	BYTE	bVal,
+	UINT	uiCount
+      );
+VOID
 Memcpy(
 	PTR	pTarget,
 	PTR	pSource,
-	INT	iCount
+	UINT	uiCount
       );
+
+/* ---------- String API ---------- */
+INT
+StringCompare(
+	STRING	str1,
+	STRING	str2
+	);
+PSTRING
+ParseString(
+	STRING	strParse
+       );
+VOID
+FreeArgs(
+	ARGS	args
+	);
 
 /* ---------- File API ---------- */
 KOBJIO

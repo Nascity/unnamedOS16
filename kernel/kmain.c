@@ -15,7 +15,7 @@ void main(void)
 	if (!suc)
 		printline(SHELL_FAIL_MSG);
 	else
-		printline(SHELL_SUCCESS_MSG, ret);
+		printline(SHELL_SUCCESS_MSG);
 	halt();
 }
 

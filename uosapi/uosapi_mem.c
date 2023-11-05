@@ -60,14 +60,32 @@ FreeHeapMem(
 }
 
 VOID
+Memset(
+	PTR	pTarget,
+	BYTE	bVal,
+	UINT	uiCount
+      )
+{
+	UINT	i;
+
+	i = 0;
+	while (i < uiCount)
+		pTarget[i++] = bVal;
+}
+
+VOID
 Memcpy(
 	PTR	pTarget,
 	PTR	pSource,
-	INT	iCount
+	UINT	uiCount
       )
 {
-	INT	i;
+	UINT	i;
 
-	for (i = 0; i < iCount; i++)
+	i = 0;
+	while (i < uiCount)
+	{
 		pTarget[i] = pSource[i];
+		i++;
+	}
 }

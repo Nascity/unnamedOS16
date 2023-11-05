@@ -2,3 +2,5 @@
 *.img
 *.o
 *.s
+*.swp
+*.swo

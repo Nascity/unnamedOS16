@@ -1,17 +1,44 @@
 #include "../uosapi/inc/uosapi.h"
+#include "inc/shell.h"
+#include "inc/shelltypes.h"
 
+/* ---------- Global Variable ---------- */
+INT
+iShellExitCode;
+
+OS_VERSION_INFO
+ovi;
+
+/* ---------- UosMain ---------- */
 INT
 UosMain(
 	PTR	pCmdLine,
-	ARGS	args
        )
 {
-	INT	i;
-	KOBJIO	koio;
+	CHAR	strCmdBuffer[COMMAND_BUFFER_SIZE];
+	PSTRING	psArgs;
 
-	PrintFormat("koio: %d\n", koio = OpenFile("testfile", "sys", FILE_OPEN_WRITE));
-	PrintFormat("ret: %d\n", WriteFile(koio, "teststring", 1, 10));
-	PrintFormat("cf: %d\n", CreateFile("test", "txt", FILE_CREATE_READONLY));
-	PrintFormat("df: %d\n", DeleteFile("testfile", "sys"));
-	return 1234;
+	psArgs = ParseString(pCmdLine);
+
+	if (psArgs[3])
+	{
+		PrintFormat("%s", INVALID_ARGUMENT_ERROR_MSG);
+		return -1;
+	}
+	ovi.strOSName = psArgs[0];
+	ovi.strKernelName = psArgs[1];
+	ovi.strKernelVer = psArgs[2];
+	while (TRUE)
+	{
+		Memset(strCmdBuffer, 0, COMMAND_BUFFER_SIZE);
+		PrintChar('\n');
+		if (!GetCommand(strCmdBuffer))
+		{
+			PrintFormat(COMMAND_LONG_ERROR_MSG);
+			continue;
+		}
+		if (!InterpretCommand(strCmdBuffer))
+			break;
+	}
+	return iShellExitCode;
 }
